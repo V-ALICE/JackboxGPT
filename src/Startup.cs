@@ -41,7 +41,7 @@ namespace JackboxGPT3
 
             logger.Information("Starting up...");
 
-            var roomCode = configuration.RoomCode;
+            var roomCode = configuration.RoomCode.ToUpper();
             var ecastHost = configuration.EcastHost;
 
             logger.Debug($"Ecast host: {ecastHost}");

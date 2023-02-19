@@ -58,7 +58,7 @@ namespace JackboxGPT3.Games.Common
                 Password = ""
             };
 
-            var url = new Uri($"wss://{_configuration.EcastHost}/api/v2/rooms/{_configuration.RoomCode}/play?{bootstrap.AsQueryString()}");
+            var url = new Uri($"wss://{_configuration.EcastHost}/api/v2/rooms/{_configuration.RoomCode.ToUpper()}/play?{bootstrap.AsQueryString()}");
 
             _logger.Debug($"Trying to connect to ecast websocket with url: {url}");
 
