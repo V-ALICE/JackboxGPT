@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using OpenAI_API;
+using OpenAI_API.Completions;
+using OpenAI_API.Models;
 using static JackboxGPT3.Services.ICompletionService;
 
 namespace JackboxGPT3.Services
@@ -11,6 +14,7 @@ namespace JackboxGPT3.Services
     public class OpenAICompletionService : ICompletionService
     {
         private readonly OpenAIAPI _api;
+        private readonly Model _model;
 
         /// <summary>
         /// Instantiate an <see cref="OpenAICompletionService"/> from the environment.
@@ -19,7 +23,8 @@ namespace JackboxGPT3.Services
 
         private OpenAICompletionService(string apiKey, IConfigurationProvider configuration)
         {
-            _api = new OpenAIAPI(apiKey, configuration.OpenAIEngine);
+            _api = new OpenAIAPI(apiKey);
+            _model = new Model(configuration.OpenAIEngine);
         }
 
         public async Task<CompletionResponse> CompletePrompt(
@@ -38,6 +43,7 @@ namespace JackboxGPT3.Services
                 tries++;
                 var apiResult = await _api.Completions.CreateCompletionAsync(
                     prompt,
+                    _model,
                     completionParameters.MaxTokens,
                     completionParameters.Temperature,
                     completionParameters.TopP,
@@ -82,6 +88,7 @@ namespace JackboxGPT3.Services
                 tries++;
                 var apiResult = await _api.Completions.CreateCompletionAsync(
                     prompt,
+                    _model,
                     completionParameters.MaxTokens,
                     completionParameters.Temperature,
                     completionParameters.TopP,
@@ -111,11 +118,39 @@ namespace JackboxGPT3.Services
                 FinishReason = choice.FinishReason
             };
         }
-        
-        public async Task<List<ICompletionService.SearchResponse>> SemanticSearch(string query, IList<string> documents)
+
+        private static double CosineSimilarity(IList<float> vector1, IList<float> vector2)
         {
-            var apiResults = await _api.Search.GetSearchResultsAsync(query, documents.ToArray());
-            return apiResults.Select(apiResult => new ICompletionService.SearchResponse {Index = documents.IndexOf(apiResult.Key), Score = apiResult.Value}).ToList();
+            var dotProduct = 0.0;
+            var norm1 = 0.0;
+            var norm2 = 0.0;
+            for (var i = 0; i < vector1.Count; i++)
+            {
+                dotProduct += vector1[i] * vector2[i];
+                norm1 += Math.Pow(vector1[i], 2);
+                norm2 += Math.Pow(vector2[i], 2);
+            }
+            return dotProduct / (Math.Sqrt(norm1) * Math.Sqrt(norm2));
+        }
+
+        public async Task<List<SearchResponse>> SemanticSearch(string query, IList<string> documents)
+        {
+
+            var queryEmbedding = await _api.Embeddings.GetEmbeddingsAsync(query);
+            var documentEmbeddings = await Task.WhenAll(documents.Select(doc => _api.Embeddings.GetEmbeddingsAsync(doc)));
+
+            var similarities = documentEmbeddings.Select((embedding, i) =>
+                (index: i, similarity: CosineSimilarity(queryEmbedding, embedding))).ToList();
+
+            var searchResults = similarities.OrderByDescending(similarity => similarity.similarity)
+                .Select(similarity => new SearchResponse
+                {
+                    Index = similarity.index,
+                    Score = similarity.similarity * 300 // TODO: Change; Doing this currently to deal with the fact that original values were 0-300 and now 0-1
+                })
+                .ToList();
+
+            return searchResults;
         }
     }
 }
