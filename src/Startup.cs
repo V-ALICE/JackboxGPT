@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -21,7 +22,7 @@ namespace JackboxGPT3
     {
         private static readonly HttpClient _httpClient = new();
 
-        public static async Task Bootstrap(IConfigurationProvider configuration)
+        public static async Task Bootstrap(DefaultConfigurationProvider configuration)
         {
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Is(Enum.Parse<LogEventLevel>(configuration.LogLevel, true))
@@ -30,6 +31,16 @@ namespace JackboxGPT3
 
             Log.Logger = logger;
 
+            var instances = new List<Task>();
+            for (var i = 0; i < configuration.WorkerCount; i++)
+            {
+                instances.Add(BootstrapInternal(configuration, logger));
+            }
+            await Task.WhenAll(instances);
+        }
+
+        private static async Task BootstrapInternal(IConfigurationProvider configuration, ILogger logger)
+        {
             var builder = new ContainerBuilder();
             builder.RegisterInstance(configuration).As<IConfigurationProvider>();
             builder.RegisterType<OpenAICompletionService>().As<ICompletionService>();

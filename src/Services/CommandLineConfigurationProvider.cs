@@ -21,5 +21,8 @@ namespace JackboxGPT3.Services
 
         [Option("verbosity", Default = "information", HelpText = "Log level to output. Possible values: verbose, debug, information, warning, error, fatal")]
         public override string LogLevel { get; set; }
+
+        [Option("instances", Default = 1, HelpText = "The number of Jackbox GPT players to spin up.")]
+        public override int WorkerCount { get; set; }
     }
 }

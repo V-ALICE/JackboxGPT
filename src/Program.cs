@@ -14,6 +14,8 @@ namespace JackboxGPT3
             Parser.Default.ParseArguments<CommandLineConfigurationProvider>(args)
                 .WithParsed((conf) =>
                 {
+                    Console.Write("Number of instances: ");
+                    conf.WorkerCount = int.Parse(Console.ReadLine() ?? "1");
                     Console.Write("Room Code: ");
                     conf.RoomCode = (Console.ReadLine() ?? "ZZZZ").Trim();
                     Startup.Bootstrap(conf).Wait();

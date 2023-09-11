@@ -23,9 +23,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="spawn_many.bat">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="sti_image_descriptions.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
