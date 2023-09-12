@@ -18,7 +18,7 @@ namespace JackboxGPT3.Engines
         private readonly IConfigurationProvider _configuration;
 
         public SurviveTheInternetEngine(ICompletionService completionService, ILogger logger, IConfigurationProvider configuration,
-            SurviveTheInternetClient client) : base(completionService, logger, client)
+            SurviveTheInternetClient client, int instance) : base(completionService, logger, client, instance)
         {
             _configuration = configuration;
             _descriptionProvider = new ImageDescriptionProvider("sti_image_descriptions.json");
@@ -92,7 +92,7 @@ A: I love positive people.
 Q: {stiPrompt}
 A:";
             
-            LogDebug($"GPT-3 Prompt: {prompt}");
+            LogVerbose($"GPT-3 Prompt: {prompt}");
             
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
                 {
@@ -121,7 +121,7 @@ A:";
 ""It's not the most comfortable thing to sit on"" would be a ridiculous review for a product called: 18-inch Wooden Spoon
 ""{stiPrompt.BlackBox}"" {stiPrompt.BelowBlackBox.ToLower().Trim()}";
             
-            LogDebug($"GPT-3 Prompt: {prompt}");
+            LogVerbose($"GPT-3 Prompt: {prompt}");
             
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
                 {
@@ -152,7 +152,7 @@ An absurd and ridiculous Instagram caption for a photo of people's legs through 
 An absurd and ridiculous Instagram caption for a photo of a group of people posing for a photo at a funeral: Funeral? I thought this was a party.
 An absurd and ridiculous Instagram caption for a photo of {description}:";
             
-            LogDebug($"GPT-3 Prompt: {prompt}");
+            LogVerbose($"GPT-3 Prompt: {prompt}");
             
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
                 {

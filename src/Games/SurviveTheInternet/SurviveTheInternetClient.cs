@@ -7,7 +7,7 @@ namespace JackboxGPT3.Games.SurviveTheInternet
 {
     public class SurviveTheInternetClient : BcSerializedClient<SurviveTheInternetRoom, SurviveTheInternetPlayer>
     {
-        public SurviveTheInternetClient(IConfigurationProvider configuration, ILogger logger) : base(configuration, logger) { }
+        public SurviveTheInternetClient(IConfigurationProvider configuration, ILogger logger, int instance) : base(configuration, logger, instance) { }
         
         public void SendEntry(string entry)
         {

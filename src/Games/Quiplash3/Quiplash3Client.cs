@@ -8,7 +8,7 @@ namespace JackboxGPT3.Games.Quiplash3
 {
     public class Quiplash3Client : PlayerSerializedClient<Quiplash3Room, Quiplash3Player>
     {
-        public Quiplash3Client(IConfigurationProvider configuration, ILogger logger) : base(configuration, logger) { }
+        public Quiplash3Client(IConfigurationProvider configuration, ILogger logger, int instance) : base(configuration, logger, instance) { }
 
         public void ChooseCharacter(string name)
         {

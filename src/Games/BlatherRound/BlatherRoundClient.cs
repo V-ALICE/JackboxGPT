@@ -25,7 +25,7 @@ namespace JackboxGPT3.Games.BlatherRound
         public List<string> CurrentSentences { get; private set; }
         public Sentence CurrentSentence { get; private set; }
 
-        public BlatherRoundClient(IConfigurationProvider configuration, ILogger logger) : base(configuration, logger)
+        public BlatherRoundClient(IConfigurationProvider configuration, ILogger logger, int instance) : base(configuration, logger, instance)
         {
             CurrentSentences = new List<string>();
             OnSelfUpdate += PreSelfUpdate;

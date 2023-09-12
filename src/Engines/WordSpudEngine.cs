@@ -13,7 +13,8 @@ namespace JackboxGPT3.Engines
     {
         protected override string Tag => "wordspud";
         
-        public WordSpudEngine(ICompletionService completionService, ILogger logger, WordSpudClient client) : base(completionService, logger, client)
+        public WordSpudEngine(ICompletionService completionService, ILogger logger, WordSpudClient client, int instance)
+            : base(completionService, logger, client, instance)
         {
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
@@ -67,7 +68,7 @@ namespace JackboxGPT3.Engines
 - how do you do
 - {currentWord}";
 
-            LogDebug($"GPT-3 Prompt: {prompt}");
+            LogVerbose($"GPT-3 Prompt: {prompt}");
 
             var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
             {

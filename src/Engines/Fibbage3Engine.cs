@@ -19,8 +19,8 @@ namespace JackboxGPT3.Engines
         private bool _lieLock;
         private bool _truthLock;
 
-        public Fibbage3Engine(ICompletionService completionService, ILogger logger, Fibbage3Client client)
-            : base(completionService, logger, client)
+        public Fibbage3Engine(ICompletionService completionService, ILogger logger, Fibbage3Client client, int instance)
+            : base(completionService, logger, client, instance)
         {
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
@@ -55,7 +55,7 @@ namespace JackboxGPT3.Engines
         private void OnRoomUpdate(object sender, Revision<Fibbage3Room> revision)
         {
             var room = revision.New;
-            LogDebug($"New room state: {room.State}");
+            LogDebug($"New room state: {room.State}", true);
         }
         
         #region Game Actions
@@ -64,7 +64,7 @@ namespace JackboxGPT3.Engines
             _lieLock = true;
 
             var prompt = CleanPromptForEntry(self.Question);
-            LogInfo($"Asking GPT-3 for lie in response to \"{prompt}\".");
+            LogInfo($"Asking GPT-3 for lie in response to \"{prompt}\".", true);
 
             var lie = await ProvideLie(prompt);
             LogInfo($"Submitting lie \"{lie}\"");
@@ -77,7 +77,7 @@ namespace JackboxGPT3.Engines
             _lieLock = true;
 
             var prompt = CleanPromptForEntry(self.Question);
-            LogInfo($"Asking GPT-3 for double lie in response to \"{prompt}\".");
+            LogInfo($"Asking GPT-3 for double lie in response to \"{prompt}\".", true);
 
             var lie = await ProvideDoubleLie(prompt, self.AnswerDelim, self.MaxLength);
             LogInfo($"Submitting double lie \"{lie}\"");
@@ -90,7 +90,7 @@ namespace JackboxGPT3.Engines
             _truthLock = true;
 
             var prompt = CleanPromptForEntry(JackboxClient.GameState.Room.Question);
-            LogInfo("Asking GPT-3 to choose truth.");
+            LogInfo("Asking GPT-3 to choose truth.", true);
 
             var choices = self.LieChoices;
             var truth = await ProvideTruth(prompt, choices);

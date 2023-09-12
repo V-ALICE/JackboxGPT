@@ -20,7 +20,8 @@ namespace JackboxGPT3.Engines
         private readonly List<string> _guessesUsedThisRound = new();
         private bool _writing;
         
-        public BlatherRoundEngine(ICompletionService completionService, ILogger logger, BlatherRoundClient client) : base(completionService, logger, client)
+        public BlatherRoundEngine(ICompletionService completionService, ILogger logger, BlatherRoundClient client, int instance)
+            : base(completionService, logger, client, instance)
         {
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.OnWriteNewSentence += OnWriteNewSentence;
@@ -262,7 +263,7 @@ A list of sentences to describe a {JackboxClient.CurrentCategory}:
 
 Guesses:";
             
-            LogDebug($"GPT-3 Prompt: {prompt}");
+            LogVerbose($"GPT-3 Prompt: {prompt}");
             
             var result = await CompletionService.CompletePrompt(
                 prompt,

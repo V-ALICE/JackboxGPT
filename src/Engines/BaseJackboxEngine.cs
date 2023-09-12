@@ -8,43 +8,51 @@ namespace JackboxGPT3.Engines
         where TClient : IJackboxClient
     {
         protected abstract string Tag { get; }
-
+        
         protected readonly ICompletionService CompletionService;
         protected readonly TClient JackboxClient;
         
         private readonly ILogger _logger;
 
-        protected BaseJackboxEngine(ICompletionService completionService, ILogger logger, TClient client)
+        protected readonly int Instance;
+
+        protected BaseJackboxEngine(ICompletionService completionService, ILogger logger, TClient client, int instance = 0)
         {
             CompletionService = completionService;
             JackboxClient = client;
             _logger = logger;
+            Instance = instance;
         }
 
         // ReSharper disable UnusedMember.Global
-        protected void LogWarning(string text)
+        protected void LogWarning(string text, bool onlyOnce = false)
         {
-            _logger.Warning($"[{Tag}] {text}");
+            if (onlyOnce && Instance != 0) return;
+            _logger.Warning(onlyOnce ? $"[{Tag}][clients] {text}" : $"[{Tag}][client{Instance}] {text}");
         }
 
-        protected void LogError(string text)
+        protected void LogError(string text, bool onlyOnce = false)
         {
-            _logger.Error($"[{Tag}] {text}");
+            if (onlyOnce && Instance != 0) return;
+            _logger.Error(onlyOnce ? $"[{Tag}][clients] {text}" : $"[{Tag}][client{Instance}] {text}");
         }
 
-        protected void LogDebug(string text)
+        protected void LogDebug(string text, bool onlyOnce = false)
         {
-            _logger.Debug($"[{Tag}] {text}");
+            if (onlyOnce && Instance != 0) return;
+            _logger.Debug(onlyOnce ? $"[{Tag}][clients] {text}" : $"[{Tag}][client{Instance}] {text}");
         }
 
-        protected void LogVerbose(string text)
+        protected void LogVerbose(string text, bool onlyOnce = false)
         {
-            _logger.Verbose($"[{Tag}] {text}");
+            if (onlyOnce && Instance != 0) return;
+            _logger.Verbose(onlyOnce ? $"[{Tag}][clients] {text}" : $"[{Tag}][client{Instance}] {text}");
         }
 
-        protected void LogInfo(string text)
+        protected void LogInfo(string text, bool onlyOnce = false)
         {
-            _logger.Information($"[{Tag}] {text}");
+            if (onlyOnce && Instance != 0) return;
+            _logger.Information(onlyOnce ? $"[{Tag}][clients] {text}" : $"[{Tag}][client{Instance}] {text}");
         }
         // ReSharper restore UnusedMember.Global
     }

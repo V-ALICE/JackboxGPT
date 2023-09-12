@@ -20,8 +20,8 @@ namespace JackboxGPT3.Engines
         private bool _selectedAvatar;
         private readonly Random _random = new();
 
-        public Quiplash3Engine(ICompletionService completionService, ILogger logger, Quiplash3Client client)
-            : base(completionService, logger, client)
+        public Quiplash3Engine(ICompletionService completionService, ILogger logger, Quiplash3Client client, int instance)
+            : base(completionService, logger, client, instance)
         {
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
@@ -120,7 +120,7 @@ Funny Answer: A shark
 Q: {qlPrompt}
 Funny Answer:";
             
-            LogDebug($"GPT-3 Prompt: {prompt}");
+            LogVerbose($"GPT-3 Prompt: {prompt}");
             
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
             {
@@ -166,7 +166,7 @@ Funny Answer: money|sex|a long hug
 Q: {qlPrompt}
 Funny Answer:";
             
-            LogDebug($"GPT-3 Prompt: {prompt}");
+            LogVerbose($"GPT-3 Prompt: {prompt}");
             
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
             {

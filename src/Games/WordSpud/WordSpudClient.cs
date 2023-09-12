@@ -7,7 +7,7 @@ namespace JackboxGPT3.Games.WordSpud
 {
     public class WordSpudClient : BcSerializedClient<WordSpudRoom, WordSpudPlayer>
     {
-        public WordSpudClient(IConfigurationProvider configuration, ILogger logger) : base(configuration, logger) { }
+        public WordSpudClient(IConfigurationProvider configuration, ILogger logger, int instance) : base(configuration, logger, instance) { }
 
         public void SubmitSpud(string spud)
         {
