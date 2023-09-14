@@ -49,7 +49,7 @@ namespace JackboxGPT3.Engines
         private async void VoteSpud()
         {
             if (JackboxClient.GameState.Self.State == RoomState.GameplayEnter) return;
-            LogInfo("Voting.");
+            LogVerbose("Voting.");
             
             await Task.Delay(1000);
             JackboxClient.Vote(1);
@@ -78,8 +78,14 @@ namespace JackboxGPT3.Engines
                 FrequencyPenalty = 0.3,
                 PresencePenalty = 0.3,
                 StopSequences = new[] { "\n" }
-            }, completion => completion.Text.Trim() != "" && completion.Text.Length <= 32,
-                defaultResponse: ".");
+            },
+            completion =>
+            {
+                if (completion.Text.Trim() != "" && completion.Text.Length <= 32) return true;
+                LogDebug($"Received unusable ProvideSpud response: {completion.Text.Trim()}");
+                return false;
+            },
+            defaultResponse: "no response");
 
             return result.Text.TrimEnd();
         }
