@@ -118,6 +118,9 @@ namespace JackboxGPT3.Engines
 
         private string CleanResult(string input, string prompt = "", bool logChanges = false)
         {
+            input = input.ToUpper();
+            prompt = prompt.ToUpper();
+
             // Characters that mark the end of a reasonable answer
             var clipMarkers = new[] { '?', '!', ';', ':' };
             var clipIdx = input.IndexOfAny(clipMarkers);
