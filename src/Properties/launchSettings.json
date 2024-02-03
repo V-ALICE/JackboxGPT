@@ -2,7 +2,7 @@
   "profiles": {
     "JackboxGPT3": {
       "commandName": "Project",
-      "commandLineArgs": "--verbosity debug --name DBug --engine curie ZZZZ"
+      "commandLineArgs": "--verbosity debug --name DBug --engine davinci-002 ZZZZ"
     }
   }
 }

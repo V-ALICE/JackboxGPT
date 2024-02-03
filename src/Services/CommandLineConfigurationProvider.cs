@@ -11,7 +11,7 @@ namespace JackboxGPT3.Services
         [Option("name", Default = "GPT-3", HelpText = "The name the player should join the room as.")]
         public override string PlayerName { get; set; }
 
-        [Option("engine", Default = "davinci", HelpText =
+        [Option("engine", Default = "davinci-002", HelpText =
             "The GPT-3 model to use for completions. Some game engines may use different prompts. " +
             "For example, the instruct-series models might be given a more direct prompt with no examples. " +
             "For a list of engines and the differences between them, check out OpenAI's docs: " +
