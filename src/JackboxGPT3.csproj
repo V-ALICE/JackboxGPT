@@ -21,4 +21,10 @@
     <Folder Include="Engines\" />
     <Folder Include="Extensions\" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="sti_image_descriptions.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

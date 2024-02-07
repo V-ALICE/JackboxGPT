@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "JackboxGPT3": {
+      "commandName": "Project",
+      "commandLineArgs": "--verbosity debug --name DBug --engine davinci-002 ZZZZ"
+    }
+  }
+}

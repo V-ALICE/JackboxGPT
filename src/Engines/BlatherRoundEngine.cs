@@ -20,7 +20,8 @@ namespace JackboxGPT3.Engines
         private readonly List<string> _guessesUsedThisRound = new();
         private bool _writing;
         
-        public BlatherRoundEngine(ICompletionService completionService, ILogger logger, BlatherRoundClient client) : base(completionService, logger, client)
+        public BlatherRoundEngine(ICompletionService completionService, ILogger logger, BlatherRoundClient client, int instance)
+            : base(completionService, logger, client, instance)
         {
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.OnWriteNewSentence += OnWriteNewSentence;
@@ -57,14 +58,21 @@ namespace JackboxGPT3.Engines
             {
                 if (JackboxClient.GameState.Self.State != PlayerState.EnterSingleText) return;
                 JackboxClient.SubmitGuess(guess);
-                await Task.Delay(1000);
+                await Task.Delay(3000);
             }
         }
 
         private void ChoosePassword(BlatherRoundPlayer self)
         {
             _guessesUsedThisRound.Clear();
-            JackboxClient.ChoosePassword(self.Choices.Where(c => c.ClassName != "refresh").ToList().RandomIndex());
+            var choice = self.Choices.Where(c => c.ClassName != "refresh").ToList().RandomIndex();
+            JackboxClient.ChoosePassword(choice);
+
+            var nonPasswordEndings = new[] { "Skip Tutorials", "My Bad", "blew it!" };
+            if (nonPasswordEndings.Any(check => self.Choices[choice].Html.EndsWith(check)))
+                LogVerbose($"Selecting option: {self.Choices[choice].Html}");
+            else
+                LogDebug($"Password is: {self.Choices[choice].Html}");
         }
 
         private async void OnWriteNewSentence(object sender, Sentence sentence)
@@ -186,7 +194,8 @@ namespace JackboxGPT3.Engines
             
             var chosenWords = string.Join(' ', JackboxClient.CurrentSentence.ChosenWords);
             
-            LogVerbose($"chosenWords: {chosenWords}");
+            if (chosenWords.Length > 0)
+                LogDebug($"chosenWords: {chosenWords}");
 
             var newChoices =
                 order == PartOrder.After ?

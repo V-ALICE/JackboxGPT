@@ -13,7 +13,8 @@ namespace JackboxGPT3.Engines
     {
         protected override string Tag => "wordspud";
         
-        public WordSpudEngine(ICompletionService completionService, ILogger logger, WordSpudClient client) : base(completionService, logger, client)
+        public WordSpudEngine(ICompletionService completionService, ILogger logger, WordSpudClient client, int instance)
+            : base(completionService, logger, client, instance)
         {
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
@@ -48,7 +49,7 @@ namespace JackboxGPT3.Engines
         private async void VoteSpud()
         {
             if (JackboxClient.GameState.Self.State == RoomState.GameplayEnter) return;
-            LogInfo("Voting.");
+            LogVerbose("Voting.");
             
             await Task.Delay(1000);
             JackboxClient.Vote(1);
@@ -67,7 +68,7 @@ namespace JackboxGPT3.Engines
 - how do you do
 - {currentWord}";
 
-            LogDebug($"GPT-3 Prompt: {prompt}");
+            LogVerbose($"GPT-3 Prompt: {prompt}");
 
             var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
             {
@@ -77,8 +78,14 @@ namespace JackboxGPT3.Engines
                 FrequencyPenalty = 0.3,
                 PresencePenalty = 0.3,
                 StopSequences = new[] { "\n" }
-            }, completion => completion.Text.Trim() != "" && completion.Text.Length <= 32,
-                defaultResponse: ".");
+            },
+            completion =>
+            {
+                if (completion.Text.Trim() != "" && completion.Text.Length <= 32) return true;
+                LogDebug($"Received unusable ProvideSpud response: {completion.Text.Trim()}");
+                return false;
+            },
+            defaultResponse: "no response");
 
             return result.Text.TrimEnd();
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -21,7 +22,7 @@ namespace JackboxGPT3
     {
         private static readonly HttpClient _httpClient = new();
 
-        public static async Task Bootstrap(IConfigurationProvider configuration)
+        public static async Task Bootstrap(DefaultConfigurationProvider configuration)
         {
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Is(Enum.Parse<LogEventLevel>(configuration.LogLevel, true))
@@ -30,22 +31,35 @@ namespace JackboxGPT3
 
             Log.Logger = logger;
 
+            var instances = new List<Task>();
+            for (var i = 0; i < configuration.WorkerCount; i++)
+            {
+                instances.Add(BootstrapInternal(configuration, logger, i));
+            }
+            await Task.WhenAll(instances);
+        }
+
+        private static async Task BootstrapInternal(IConfigurationProvider configuration, ILogger logger, int instanceNum = 0)
+        {
             var builder = new ContainerBuilder();
             builder.RegisterInstance(configuration).As<IConfigurationProvider>();
             builder.RegisterType<OpenAICompletionService>().As<ICompletionService>();
             builder.RegisterInstance<ILogger>(logger).SingleInstance();
+            builder.Register(instance => instanceNum);
 
             builder.RegisterGameEngines();
 
             var container = builder.Build();
 
-            logger.Information("Starting up...");
-
-            var roomCode = configuration.RoomCode;
+            var roomCode = configuration.RoomCode.ToUpper();
             var ecastHost = configuration.EcastHost;
 
-            logger.Debug($"Ecast host: {ecastHost}");
-            logger.Information($"Trying to join room with code: {roomCode}");
+            if (instanceNum == 0)
+            {
+                logger.Information("Starting up...");
+                logger.Debug($"Ecast host: {ecastHost}");
+                logger.Information($"Trying to join room with code: {roomCode}");
+            }
 
             var response = await _httpClient.GetAsync($"https://{ecastHost}/api/v2/rooms/{roomCode}");
 
@@ -70,7 +84,8 @@ namespace JackboxGPT3
                 return;
             }
 
-            logger.Information($"Room found! Starting up {tag} engine...");
+            if (instanceNum == 0)
+                logger.Information($"Room found! Starting up {tag} engine...");
             container.ResolveNamed<IJackboxEngine>(tag);
         }
 

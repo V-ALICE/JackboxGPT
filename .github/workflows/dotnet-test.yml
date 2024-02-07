@@ -17,7 +17,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 5.0.102
+          dotnet-version: 6.0.414
   
       - name: Install dependencies
         run: dotnet nuget locals all --clear && dotnet restore
@@ -28,8 +28,8 @@ jobs:
       - name: Test
         run: dotnet test --verbosity normal --logger:"nunit;LogFilePath=TestResults/test-result.xml" /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=coverage.xml
 
-      - uses: MirrorNG/nunit-reporter@v1.0.9
-        if: always()
-        with:
-          path: "tests/**/TestResults/*.xml"
-          access-token: ${{ secrets.GITHUB_TOKEN }}
+#      - uses: MirrorNG/nunit-reporter@v1.0.9
+#        if: always()
+#        with:
+#          path: "tests/**/TestResults/*.xml"
+#          access-token: ${{ secrets.GITHUB_TOKEN }}

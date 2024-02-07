@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using OpenAI_API;
 using OpenAI_API.Completions;
@@ -136,8 +136,17 @@ namespace JackboxGPT3.Services
         public async Task<List<SearchResponse>> SemanticSearch(string query, IList<string> documents)
         {
 
-            var queryEmbedding = await _api.Embeddings.GetEmbeddingsAsync(query);
-            var documentEmbeddings = await Task.WhenAll(documents.Select(doc => _api.Embeddings.GetEmbeddingsAsync(doc)));
+            var queryEmbedding = Array.Empty<float>();
+            var documentEmbeddings = Array.Empty<float[]>();
+            try
+            {
+                queryEmbedding = await _api.Embeddings.GetEmbeddingsAsync(query);
+                documentEmbeddings = await Task.WhenAll(documents.Select(doc => _api.Embeddings.GetEmbeddingsAsync(doc)));
+            }
+            catch (HttpRequestException)
+            {
+                // Sometimes this will throw a 502 error, not sure why it happens randomly
+            }
 
             var similarities = documentEmbeddings.Select((embedding, i) =>
                 (index: i, similarity: CosineSimilarity(queryEmbedding, embedding))).ToList();

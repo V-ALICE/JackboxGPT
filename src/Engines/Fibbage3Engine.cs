@@ -19,8 +19,8 @@ namespace JackboxGPT3.Engines
         private bool _lieLock;
         private bool _truthLock;
 
-        public Fibbage3Engine(ICompletionService completionService, ILogger logger, Fibbage3Client client)
-            : base(completionService, logger, client)
+        public Fibbage3Engine(ICompletionService completionService, ILogger logger, Fibbage3Client client, int instance)
+            : base(completionService, logger, client, instance)
         {
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
@@ -55,7 +55,7 @@ namespace JackboxGPT3.Engines
         private void OnRoomUpdate(object sender, Revision<Fibbage3Room> revision)
         {
             var room = revision.New;
-            LogDebug($"New room state: {room.State}");
+            LogDebug($"New room state: {room.State}", true);
         }
         
         #region Game Actions
@@ -64,10 +64,10 @@ namespace JackboxGPT3.Engines
             _lieLock = true;
 
             var prompt = CleanPromptForEntry(self.Question);
-            LogInfo($"Asking GPT-3 for lie in response to \"{prompt}\".");
+            LogInfo($"Asking GPT-3 for lie in response to \"{prompt}\".", true);
 
             var lie = await ProvideLie(prompt);
-            LogInfo($"Submitting lie \"{lie}\".");
+            LogInfo($"Submitting lie \"{lie}\"");
 
             JackboxClient.SubmitLie(lie);
         }
@@ -77,10 +77,10 @@ namespace JackboxGPT3.Engines
             _lieLock = true;
 
             var prompt = CleanPromptForEntry(self.Question);
-            LogInfo($"Asking GPT-3 for double lie in response to \"{prompt}\".");
+            LogInfo($"Asking GPT-3 for double lie in response to \"{prompt}\".", true);
 
             var lie = await ProvideDoubleLie(prompt, self.AnswerDelim, self.MaxLength);
-            LogInfo($"Submitting double lie \"{lie}\".");
+            LogInfo($"Submitting double lie \"{lie}\"");
 
             JackboxClient.SubmitLie(lie);
         }
@@ -90,11 +90,11 @@ namespace JackboxGPT3.Engines
             _truthLock = true;
 
             var prompt = CleanPromptForEntry(JackboxClient.GameState.Room.Question);
-            LogInfo("Asking GPT-3 to choose truth.");
+            LogInfo("Asking GPT-3 to choose truth.", true);
 
             var choices = self.LieChoices;
             var truth = await ProvideTruth(prompt, choices);
-            LogInfo($"Submitting truth {truth}.");
+            LogInfo($"Submitting truth {truth} (\"{choices[truth].Text}\")");
 
             JackboxClient.ChooseTruth(truth, choices[truth].Text);
         }
@@ -115,6 +115,41 @@ namespace JackboxGPT3.Engines
         #endregion
 
         #region GPT-3 Prompts
+
+        private string CleanResult(string input, string prompt = "", bool logChanges = false)
+        {
+            input = input.ToUpper();
+            prompt = prompt.ToUpper();
+
+            // Characters that mark the end of a reasonable answer
+            var clipMarkers = new[] { '?', '!', ';', ':' };
+            var clipIdx = input.IndexOfAny(clipMarkers);
+            var clipped = clipIdx >= 0 ? input[..clipIdx] : input;
+
+            // Characters that shouldn't be in a submitted answer
+            var removals = new[] { "\"", "\n", "\r", "\t", "..." };
+            clipped = removals.Aggregate(clipped, (current, r) => current.Replace(r, null));
+
+            // Characters that shouldn't be on the front or back of a submitted answer
+            var endRemovals = new[] { '.', ' ', ',' };
+            clipped = clipped.Trim(endRemovals).Replace("  ", " "); // Additionally remove any double spaces that previous changes may have created
+
+            // Sometimes the AI likes to include pieces of the prompt at the end of its answer (i.e. "at the _______ exhibit." -> "art exhibit")
+            // Removing these might not always be correct since there are (probably) instances where such duplication makes sense
+            if (prompt.Length > 0)
+            {
+                var promptEnding = prompt[(prompt.LastIndexOf("__", StringComparison.Ordinal) + 2)..].Trim(endRemovals);
+                var words = clipped.Split(' ');
+                var allWordSets = words.Select((_, i) => string.Join(' ', words[i..])).ToList(); // Ordered longest to shortest
+                var overlap = allWordSets.FirstOrDefault(promptEnding.StartsWith) ?? "";
+                clipped = clipped[..^overlap.Length].Trim(endRemovals);
+            }
+
+            if (logChanges && input.Length != clipped.Length)
+                LogInfo($"Edited AI response from \"{input}\" to \"{clipped}\"");
+            return clipped;
+        }
+
         private async Task<string> ProvideLie(string fibPrompt)
         {
             var prompt = $@"Here are some prompts from the game Fibbage, in which players attempt to write convincing lies to trick others.
@@ -138,10 +173,17 @@ A:";
                 TopP = 1,
                 FrequencyPenalty = 0.2,
                 StopSequences = new[] { "\n" }
-            }, completion => !completion.Text.Contains("___") && completion.Text.Length <= 45,
-                defaultResponse: "Default Response!");
+            },
+            completion =>
+            {
+                var cleanText = CleanResult(completion.Text.Trim(), fibPrompt);
+                if (cleanText.Length is <= 45 and > 0 && !cleanText.Contains("__")) return true;
+                LogDebug($"Received unusable ProvideLie response: {completion.Text.Trim()}");
+                return false;
+            },
+            defaultResponse: "Default Response");
 
-            return result.Text.Trim();
+            return CleanResult(result.Text.Trim(), fibPrompt, true);
         }
         
         private async Task<string> ProvideDoubleLie(string fibPrompt, string delim, int maxLength)
@@ -172,16 +214,25 @@ A:";
                     try
                     {
                         var lies = completion.Text.Trim().Split('|');
-                        return lies.Length == 2 && !lies.Any(lie => lie.Length > maxLength);
+                        var p1 = CleanResult(lies[0]);
+                        var p2 = CleanResult(lies[1], fibPrompt);
+                        if (lies.Length >= 2
+                            && p1.Length > 0 && p1.Length <= maxLength && !p1.Contains("__")
+                            && p2.Length > 0 && p2.Length <= maxLength && !p2.Contains("__"))
+                            return true;
                     }
                     catch
                     {
-                        return false;
+                        // pass
                     }
+
+                    LogDebug($"Received unusable ProvideDoubleLie response: {completion.Text.Trim()}");
+                    return false;
                 },
                 defaultResponse: "default|response");
 
-            return string.Join(delim, result.Text.Trim().Split('|'));
+            var split = result.Text.Trim().Split('|');
+            return string.Join(delim, CleanResult(split[0], logChanges: true), CleanResult(split[1], fibPrompt, true));
         }
 
         private async Task<int> ProvideTruth(string fibPrompt, IReadOnlyList<LieChoice> lies)
@@ -196,6 +247,28 @@ A:";
 ${options}
 I think the truth is answer number";
 
+            int IntParseExt(string input)
+            {
+                if (input.Length < 1) throw new FormatException();
+
+                // Assume the response is int-parsable if it starts with a digit character
+                if (char.IsDigit(input[0])) return int.Parse(input);
+                
+                // GPT likes to respond in English sometimes, so this (manually) tries to check for that
+                return input.ToUpper() switch
+                {
+                    "ONE" => 1,
+                    "TWO" => 2,
+                    "THREE" => 3,
+                    "FOUR" => 4,
+                    "FIVE" => 5,
+                    "SIX" => 6,
+                    "SEVEN" => 7,
+                    "EIGHT" => 8, // Game should have a max of eight options to choose from
+                    _ => throw new FormatException() // Response was something unhandled here
+                };
+            }
+
             var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
             {
                 Temperature = 1,
@@ -206,16 +279,20 @@ I think the truth is answer number";
             {
                 try
                 {
-                    var answer = int.Parse(completion.Text.Trim());
-                    return answer <= lies.Count && answer > 0;
+                    var answer = IntParseExt(completion.Text.Trim());
+                    if (0 < answer && answer <= lies.Count) return true;
                 }
                 catch(FormatException)
                 {
-                    return false;
+                    // pass
                 }
-            }, defaultResponse: "0");
 
-            return int.Parse(result.Text.Trim()) - 1;
+                LogDebug($"Received unusable ProvideTruth response: {completion.Text.Trim()}");
+                return false;
+            }, 
+            defaultResponse: new Random().Next(1, lies.Count+1).ToString());
+            
+            return IntParseExt(result.Text.Trim()) - 1;
         }
         #endregion
 

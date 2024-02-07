@@ -20,8 +20,8 @@ namespace JackboxGPT3.Engines
         private bool _selectedAvatar;
         private readonly Random _random = new();
 
-        public Quiplash3Engine(ICompletionService completionService, ILogger logger, Quiplash3Client client)
-            : base(completionService, logger, client)
+        public Quiplash3Engine(ICompletionService completionService, ILogger logger, Quiplash3Client client, int instance)
+            : base(completionService, logger, client, instance)
         {
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
@@ -120,7 +120,7 @@ Funny Answer: A shark
 Q: {qlPrompt}
 Funny Answer:";
             
-            LogDebug($"GPT-3 Prompt: {prompt}");
+            LogVerbose($"GPT-3 Prompt: {prompt}");
             
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
             {
@@ -130,8 +130,14 @@ Funny Answer:";
                 FrequencyPenalty = 0.2,
                 PresencePenalty = 0.1,
                 StopSequences = new[] { "\n" }
-            }, completion => !completion.Text.Contains("___") && completion.Text.Length <= 45,
-                defaultResponse: "⁇");
+            }, 
+            completion =>
+            {
+                if (!completion.Text.Contains("___") && completion.Text.Length <= 45) return true;
+                LogDebug($"Received unusable ProvideQuip response: {completion.Text.Trim()}");
+                return false;
+            },
+            defaultResponse: "⁇");
 
             return result.Text.Trim().TrimEnd('.');
         }
@@ -166,7 +172,7 @@ Funny Answer: money|sex|a long hug
 Q: {qlPrompt}
 Funny Answer:";
             
-            LogDebug($"GPT-3 Prompt: {prompt}");
+            LogVerbose($"GPT-3 Prompt: {prompt}");
             
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
             {
@@ -176,8 +182,17 @@ Funny Answer:";
                 FrequencyPenalty = 0.2,
                 PresencePenalty = 0.1,
                 StopSequences = new[] { "\n" }
-            }, completion => completion.Text.Split("|").Length == 3 && !completion.Text.Contains("___") && completion.Text.Length <= 45,
-                defaultResponse: "Oops|GPT-3 didn't work|Sigh");
+            }, 
+            completion =>
+            {
+                if (completion.Text.Split("|").Length == 3
+                    && !completion.Text.Contains("___")
+                    && completion.Text.Length <= 45) 
+                    return true;
+                LogDebug($"Received unusable ProvideThrip response: {completion.Text.Trim()}");
+                return false;
+            },
+            defaultResponse: "Oops|GPT-3 didn't work|Sigh");
 
             return string.Join("\n", result.Text.Split("|")).Trim();
         }
@@ -191,6 +206,22 @@ Funny Answer:";
 
             var prompt = $"I was playing a game of Quiplash, and the prompt was \"${qlPrompt}\". These were my options:\n\n${options}\nThe funniest was prompt number";
 
+            int IntParseExt(string input)
+            {
+                if (input.Length < 1) throw new FormatException();
+
+                // Assume the response is int-parsable if it starts with a digit character
+                if (char.IsDigit(input[0])) return int.Parse(input);
+
+                // GPT likes to respond in English sometimes, so this (manually) tries to check for that
+                return input.ToUpper() switch
+                {
+                    "ONE" => 1,
+                    "TWO" => 2, // Game should have a max of two options to choose from
+                    _ => throw new FormatException() // Response was something unhandled here
+                };
+            }
+
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
             {
                 Temperature = 1,
@@ -201,16 +232,20 @@ Funny Answer:";
             {
                 try
                 {
-                    var answer = int.Parse(completion.Text.Trim());
+                    var answer = IntParseExt(completion.Text.Trim());
                     return answer <= quips.Count && answer > 0;
                 }
-                catch(FormatException)
+                catch (FormatException)
                 {
-                    return false;
+                    // pass
                 }
-            }, defaultResponse: _random.Next(0, quips.Count).ToString());
 
-            var choice = int.Parse(result.Text.Trim()) - 1;
+                LogDebug($"Received unusable ProvideFavorite response: {completion.Text.Trim()}");
+                return false;
+            },
+            defaultResponse: _random.Next(0, quips.Count).ToString());
+
+            var choice = IntParseExt(result.Text.Trim()) - 1;
             return choice > 0 ? choice : 0;
         }
 

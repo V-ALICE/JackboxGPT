@@ -8,5 +8,6 @@
         public abstract string OpenAIEngine { get; set; }
         public abstract string RoomCode { get; set; }
         public abstract string LogLevel { get; set; }
+        public abstract int WorkerCount { get; set; }
     }
 }

@@ -39,12 +39,15 @@ namespace JackboxGPT3.Games.Common
         private ManualResetEvent _exitEvent;
         private int _msgSeq;
 
+        private readonly int _instance;
+
         public GameState<TRoom, TPlayer> GameState => _gameState;
 
-        protected BaseJackboxClient(IConfigurationProvider configuration, ILogger logger)
+        protected BaseJackboxClient(IConfigurationProvider configuration, ILogger logger, int instance = 0)
         {
             _configuration = configuration;
             _logger = logger;
+            _instance = instance;
         }
 
         public void Connect()
@@ -58,9 +61,10 @@ namespace JackboxGPT3.Games.Common
                 Password = ""
             };
 
-            var url = new Uri($"wss://{_configuration.EcastHost}/api/v2/rooms/{_configuration.RoomCode}/play?{bootstrap.AsQueryString()}");
+            var url = new Uri($"wss://{_configuration.EcastHost}/api/v2/rooms/{_configuration.RoomCode.ToUpper()}/play?{bootstrap.AsQueryString()}");
 
-            _logger.Debug($"Trying to connect to ecast websocket with url: {url}");
+            if (_instance == 0)
+                _logger.Debug($"Trying to connect to ecast websocket with url: {url}");
 
             _webSocket = new WebsocketClient(url, () =>
             {
@@ -129,19 +133,20 @@ namespace JackboxGPT3.Games.Common
 
         private void WsConnected(ReconnectionInfo inf)
         {
-            _logger.Information("Connected to Jackbox games services.");
+            if (_instance == 0)
+                _logger.Information($"Connected to Jackbox games services.");
         }
 
         private void WsDisconnected(DisconnectionInfo inf)
         {
-            _logger.Information("Disconnected from Jackbox games services.");
+            _logger.Information($"Client{_instance} disconnected from Jackbox games services.");
             _exitEvent?.Set();
         }
 
         private void HandleClientWelcome(ClientWelcome cw)
         {
             _gameState.PlayerId = cw.Id;
-            _logger.Debug($"Client welcome message received. Player ID: {_gameState.PlayerId}");
+            _logger.Debug($"Client{_instance} welcome message received. Player ID: {_gameState.PlayerId}");
         }
 
         protected void WsSend<T>(string opCode, T body)

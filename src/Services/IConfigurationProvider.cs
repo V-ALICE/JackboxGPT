@@ -9,5 +9,6 @@ namespace JackboxGPT3.Services
         public string LogLevel { get; }
         
         public string OpenAIEngine { get; }
+        public int WorkerCount { get; }
     }
 }

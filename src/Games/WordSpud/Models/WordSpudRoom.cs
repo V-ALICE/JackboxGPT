@@ -31,6 +31,6 @@ namespace JackboxGPT3.Games.WordSpud.Models
         
         RoundOver,
         GameOver,
-        
+        None,
     }
 }
