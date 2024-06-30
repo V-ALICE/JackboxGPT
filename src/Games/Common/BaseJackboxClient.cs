@@ -1,9 +1,11 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using JackboxGPT3.Extensions;
 using JackboxGPT3.Games.Common.Models;
+using JackboxGPT3.Games.Fibbage4.Models;
 using JackboxGPT3.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -17,7 +19,9 @@ namespace JackboxGPT3.Games.Common
     {
         private const string OP_CLIENT_WELCOME = "client/welcome";
         private const string OP_CLIENT_SEND = "client/send";
-        
+        private const string OP_UPDATE_TEXT = "text/update";
+        private const string OP_UPDATE_OBJECT = "object/update";
+
         private const string OP_OBJECT = "object";
         private const string OP_TEXT = "text";
         
@@ -100,19 +104,29 @@ namespace JackboxGPT3.Games.Common
                     break;
             }
         }
-        
+
+        protected void InvokeOnSelfUpdateEvent(object? sender, Revision<TPlayer> e)
+        {
+            OnSelfUpdate?.Invoke(sender, e);
+        }
+
+        protected void InvokeOnRoomUpdateEvent(object? sender, Revision<TRoom> e)
+        {
+            OnRoomUpdate?.Invoke(sender, e);
+        }
+
         protected virtual void HandleOperation(IOperation op)
         {
             if (op.Key == $"{KEY_PLAYER_PREFIX}{_playerId}" || op.Key == $"{KEY_PLAYER_PREFIX}{_gameState.PlayerId}")
             {
                 var self = JsonConvert.DeserializeObject<TPlayer>(op.Value);
-                OnSelfUpdate?.Invoke(this, new Revision<TPlayer>(_gameState.Self, self));
+                InvokeOnSelfUpdateEvent(this, new Revision<TPlayer>(_gameState.Self, self));
                 _gameState.Self = self;
             }
             else if (op.Key == KEY_ROOM)
             {
                 var room = JsonConvert.DeserializeObject<TRoom>(op.Value);
-                OnRoomUpdate?.Invoke(this, new Revision<TRoom>(_gameState.Room, room));
+                InvokeOnRoomUpdateEvent(this, new Revision<TRoom>(_gameState.Room, room));
                 _gameState.Room = room;
             }
         }
@@ -120,14 +134,13 @@ namespace JackboxGPT3.Games.Common
         private void WsReceived(ResponseMessage msg)
         {
             var srvMsg = JsonConvert.DeserializeObject<ServerMessage<JRaw>>(msg.Text);
-
-            if(srvMsg.OpCode == OP_CLIENT_WELCOME)
+            
+            if (srvMsg.OpCode == OP_CLIENT_WELCOME)
             {
                 var cw = JsonConvert.DeserializeObject<ClientWelcome>(srvMsg.Result.ToString());
                 HandleClientWelcome(cw);
                 PlayerStateChanged?.Invoke(this, cw);
             }
-
             ServerMessageReceived(srvMsg);
         }
 
@@ -174,6 +187,18 @@ namespace JackboxGPT3.Games.Common
             };
 
             WsSend(OP_CLIENT_SEND, cs);
+        }
+
+        protected void ClientUpdate<T>(T req, string updateKey)
+        {
+            var cs = new ClientUpdateOperation<T>
+            {
+                Key = $"{updateKey}:{_gameState.PlayerId}",
+                Value = req
+            };
+
+            var op = typeof(T) == typeof(string) ? OP_UPDATE_TEXT : OP_UPDATE_OBJECT;
+            WsSend(op, cs);
         }
     }
 }

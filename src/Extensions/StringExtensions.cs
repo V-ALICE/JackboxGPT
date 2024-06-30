@@ -13,5 +13,10 @@ namespace JackboxGPT3.Extensions
         {
             return input.Trim('"').Trim('“').Trim('”');
         }
+
+        public static string StripTags(this string input)
+        {
+            return Regex.Replace(input, "\\[.*?\\]", string.Empty);
+        }
     }
 }

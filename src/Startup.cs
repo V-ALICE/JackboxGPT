@@ -8,6 +8,7 @@ using JackboxGPT3.Engines;
 using JackboxGPT3.Games.BlatherRound;
 using JackboxGPT3.Games.Common.Models;
 using JackboxGPT3.Games.Fibbage3;
+using JackboxGPT3.Games.Fibbage4;
 using JackboxGPT3.Games.Quiplash3;
 using JackboxGPT3.Games.SurviveTheInternet;
 using JackboxGPT3.Games.WordSpud;
@@ -94,6 +95,9 @@ namespace JackboxGPT3
             // Game engines, keyed with appTag
             builder.RegisterType<Fibbage3Client>();
             builder.RegisterType<Fibbage3Engine>().Keyed<IJackboxEngine>("fibbage3");
+
+            builder.RegisterType<Fibbage4Client>();
+            builder.RegisterType<Fibbage4Engine>().Keyed<IJackboxEngine>("fourbage");
 
             builder.RegisterType<Quiplash3Client>();
             builder.RegisterType<Quiplash3Engine>().Keyed<IJackboxEngine>("quiplash3");
