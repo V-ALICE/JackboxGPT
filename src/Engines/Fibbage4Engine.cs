@@ -37,7 +37,12 @@ namespace JackboxGPT3.Engines
                 if (self.Error != null)
                 {
                     LogWarning($"Received submission error from game: {self.Error}");
-                    // if the error is because of being too close to the truth, use a suggestion? (AI likes to spam the same answer sometimes)
+                    if (self.Error.Contains("Too close to the truth"))
+                        FailureCounter += 1;
+                }
+                else
+                {
+                    FailureCounter = 0;
                 }
 
                 LieLock = TruthLock = false;
@@ -75,6 +80,14 @@ namespace JackboxGPT3.Engines
             LieLock = true;
             _previousQuestion = self.Question;
 
+            if (FailureCounter > MaxFailures)
+            {
+                LogInfo("Submitting default answer because there were too many submission errors.");
+                JackboxClient.SubmitLie("NO ANSWER");
+                FailureCounter = 0;
+                return;
+            }
+
             var prompt = CleanPromptForEntry(self.Question);
             LogInfo($"Asking GPT-3 for lie in response to \"{prompt}\".", true);
 
@@ -89,6 +102,14 @@ namespace JackboxGPT3.Engines
             LieLock = true;
             _previousQuestion = self.Question;
 
+            if (FailureCounter > MaxFailures)
+            {
+                LogInfo("Submitting default answer because there were too many submission errors.");
+                JackboxClient.SubmitDoubleLie("NO", "ANSWER");
+                FailureCounter = 0;
+                return;
+            }
+
             var prompt = CleanPromptForEntry(self.Question);
             LogInfo($"Asking GPT-3 for double lie in response to \"{prompt}\".", true);
 
@@ -102,6 +123,14 @@ namespace JackboxGPT3.Engines
         {
             LieLock = true;
             _previousQuestion = self.Question;
+
+            if (FailureCounter > MaxFailures)
+            {
+                LogInfo("Submitting default answer because there were too many submission errors.");
+                JackboxClient.SubmitLie("NO ANSWER");
+                FailureCounter = 0;
+                return;
+            }
 
             var prompt1 = CleanPromptForEntry(self.Question);
             var prompt2 = CleanPromptForEntry(self.Question2 ?? throw new InvalidOperationException());

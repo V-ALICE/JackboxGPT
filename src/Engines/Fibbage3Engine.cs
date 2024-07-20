@@ -28,9 +28,13 @@ namespace JackboxGPT3.Engines
             
             if (JackboxClient.GameState.Room.State == RoomState.EndShortie || self.Error != null)
             {
-                if(self.Error != null)
+                if (self.Error != null)
+                {
                     LogWarning($"Received submission error from game: {self.Error}");
-                
+                    if (self.Error.Contains("too close to the truth"))
+                        FailureCounter += 1;
+                }
+
                 LieLock = TruthLock = false;
             }
 
@@ -58,6 +62,14 @@ namespace JackboxGPT3.Engines
         {
             LieLock = true;
 
+            if (FailureCounter > MaxFailures)
+            {
+                LogInfo("Submitting default answer because there were too many submission errors.");
+                JackboxClient.SubmitLie("NO ANSWER");
+                FailureCounter = 0;
+                return;
+            }
+
             var prompt = CleanPromptForEntry(self.Question);
             LogInfo($"Asking GPT-3 for lie in response to \"{prompt}\".", true);
 
@@ -70,6 +82,14 @@ namespace JackboxGPT3.Engines
         private async void SubmitDoubleLie(Fibbage3Player self)
         {
             LieLock = true;
+
+            if (FailureCounter > MaxFailures)
+            {
+                LogInfo("Submitting default answer because there were too many submission errors.");
+                JackboxClient.SubmitLie(string.Join(self.AnswerDelim, "NO", "ANSWER"));
+                FailureCounter = 0;
+                return;
+            }
 
             var prompt = CleanPromptForEntry(self.Question);
             LogInfo($"Asking GPT-3 for double lie in response to \"{prompt}\".", true);

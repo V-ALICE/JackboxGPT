@@ -15,6 +15,8 @@ namespace JackboxGPT3.Engines
     {
         protected bool LieLock;
         protected bool TruthLock;
+        protected int FailureCounter = 0;
+        protected readonly int MaxFailures = 5;
 
         protected BaseFibbageEngine(ICompletionService completionService, ILogger logger, TClient client, int instance)
             : base(completionService, logger, client, instance)
