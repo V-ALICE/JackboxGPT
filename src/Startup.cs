@@ -27,13 +27,14 @@ namespace JackboxGPT3
         {
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Is(Enum.Parse<LogEventLevel>(configuration.LogLevel, true))
-                .WriteTo.Console()
+                .WriteTo.Console(outputTemplate:
+                    "{Prefix}[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
 
             Log.Logger = logger;
 
             var instances = new List<Task>();
-            for (var i = 0; i < configuration.WorkerCount; i++)
+            for (var i = 1; i <= configuration.WorkerCount; i++)
             {
                 instances.Add(BootstrapInternal(configuration, logger, i));
             }

@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading;
 using JackboxGPT3.Extensions;
 using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.Fibbage4.Models;
 using JackboxGPT3.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -43,11 +42,12 @@ namespace JackboxGPT3.Games.Common
         private ManualResetEvent _exitEvent;
         private int _msgSeq;
 
+        protected const int BASE_INSTANCE = 1;
         private readonly int _instance;
 
         public GameState<TRoom, TPlayer> GameState => _gameState;
 
-        protected BaseJackboxClient(IConfigurationProvider configuration, ILogger logger, int instance = 0)
+        protected BaseJackboxClient(IConfigurationProvider configuration, ILogger logger, int instance = BASE_INSTANCE)
         {
             _configuration = configuration;
             _logger = logger;
@@ -59,7 +59,7 @@ namespace JackboxGPT3.Games.Common
             var bootstrap = new BootstrapPayload
             {
                 Role = "player",
-                Name = _configuration.PlayerName,
+                Name = $"{_configuration.PlayerName}-{_instance}",
                 UserId = _playerId.ToString(),
                 Format = "json",
                 Password = ""

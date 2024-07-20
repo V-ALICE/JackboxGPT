@@ -11,7 +11,7 @@ namespace JackboxGPT3.Games.Common
     /// </summary>
     public abstract class BcSerializedClient<TRoom, TPlayer> : BaseJackboxClient<TRoom, TPlayer>
     {
-        protected BcSerializedClient(IConfigurationProvider configuration, ILogger logger, int instance = 0) : base(configuration, logger, instance)  {  }
+        protected BcSerializedClient(IConfigurationProvider configuration, ILogger logger, int instance = BASE_INSTANCE) : base(configuration, logger, instance)  {  }
         
         protected override string KEY_ROOM => "bc:room";
         protected override string KEY_PLAYER_PREFIX => "bc:customer:";
