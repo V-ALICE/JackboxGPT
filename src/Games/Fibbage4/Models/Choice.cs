@@ -1,15 +1,13 @@
 ﻿using JackboxGPT3.Games.Common.Models;
 using Newtonsoft.Json;
 
-namespace JackboxGPT3.Games.Fibbage3.Models
+namespace JackboxGPT3.Games.Fibbage4.Models
 {
-    public struct LieChoice : ISelectionChoice
+    public struct Choice : ISelectionChoice
     {
-        [JsonProperty("disabled")]
-        public bool Disabled { get; set; }
-
         [JsonProperty("text")]
         public string Text { get; set; }
+
         public string SelectionText => Text;
     }
 }

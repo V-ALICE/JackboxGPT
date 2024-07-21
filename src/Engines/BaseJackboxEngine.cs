@@ -14,9 +14,10 @@ namespace JackboxGPT3.Engines
         
         private readonly ILogger _logger;
 
+        protected const int BASE_INSTANCE = 1;
         protected readonly int Instance;
 
-        protected BaseJackboxEngine(ICompletionService completionService, ILogger logger, TClient client, int instance = 0)
+        protected BaseJackboxEngine(ICompletionService completionService, ILogger logger, TClient client, int instance = BASE_INSTANCE)
         {
             CompletionService = completionService;
             JackboxClient = client;
@@ -25,34 +26,39 @@ namespace JackboxGPT3.Engines
         }
 
         // ReSharper disable UnusedMember.Global
-        protected void LogWarning(string text, bool onlyOnce = false)
+        protected void LogWarning(string text, bool onlyOnce = false, string prefix = "")
         {
-            if (onlyOnce && Instance != 0) return;
-            _logger.Warning(onlyOnce ? $"[{Tag}][clients] {text}" : $"[{Tag}][client{Instance}] {text}");
+            if (onlyOnce && Instance != BASE_INSTANCE) return;
+            var client = $"client{(onlyOnce ? "s" : Instance.ToString())}";
+            _logger.ForContext("Prefix", prefix).Warning($"[{Tag}][{client}] {text}");
         }
 
-        protected void LogError(string text, bool onlyOnce = false)
+        protected void LogError(string text, bool onlyOnce = false, string prefix = "")
         {
-            if (onlyOnce && Instance != 0) return;
-            _logger.Error(onlyOnce ? $"[{Tag}][clients] {text}" : $"[{Tag}][client{Instance}] {text}");
+            if (onlyOnce && Instance != BASE_INSTANCE) return;
+            var client = $"client{(onlyOnce ? "s" : Instance.ToString())}";
+            _logger.ForContext("Prefix", prefix).Error($"[{Tag}][{client}] {text}");
         }
 
-        protected void LogDebug(string text, bool onlyOnce = false)
+        protected void LogDebug(string text, bool onlyOnce = false, string prefix = "")
         {
-            if (onlyOnce && Instance != 0) return;
-            _logger.Debug(onlyOnce ? $"[{Tag}][clients] {text}" : $"[{Tag}][client{Instance}] {text}");
+            if (onlyOnce && Instance != BASE_INSTANCE) return;
+            var client = $"client{(onlyOnce ? "s" : Instance.ToString())}";
+            _logger.ForContext("Prefix", prefix).Debug($"[{Tag}][{client}] {text}");
         }
 
-        protected void LogVerbose(string text, bool onlyOnce = false)
+        protected void LogVerbose(string text, bool onlyOnce = false, string prefix = "")
         {
-            if (onlyOnce && Instance != 0) return;
-            _logger.Verbose(onlyOnce ? $"[{Tag}][clients] {text}" : $"[{Tag}][client{Instance}] {text}");
+            if (onlyOnce && Instance != BASE_INSTANCE) return;
+            var client = $"client{(onlyOnce ? "s" : Instance.ToString())}";
+            _logger.ForContext("Prefix", prefix).Verbose($"[{Tag}][{client}] {text}");
         }
 
-        protected void LogInfo(string text, bool onlyOnce = false)
+        protected void LogInfo(string text, bool onlyOnce = false, string prefix = "")
         {
-            if (onlyOnce && Instance != 0) return;
-            _logger.Information(onlyOnce ? $"[{Tag}][clients] {text}" : $"[{Tag}][client{Instance}] {text}");
+            if (onlyOnce && Instance != BASE_INSTANCE) return;
+            var client = $"client{(onlyOnce ? "s" : Instance.ToString())}";
+            _logger.ForContext("Prefix", prefix).Information($"[{Tag}][{client}] {text}");
         }
         // ReSharper restore UnusedMember.Global
     }

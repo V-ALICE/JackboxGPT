@@ -2,6 +2,7 @@
 using dotenv.net;
 using JackboxGPT3.Services;
 using System;
+using System.Linq;
 
 namespace JackboxGPT3
 {
@@ -10,20 +11,40 @@ namespace JackboxGPT3
         public static void Main(string[] args)
         {
             DotEnv.AutoConfig();
+            if (args.Length == 0)
+            {
+                var conf = new CommandLineConfigurationProvider();
 #if DEBUG
-            Parser.Default.ParseArguments<CommandLineConfigurationProvider>(args)
-                .WithParsed((conf) =>
+                conf.PlayerName = "DBUG";
+                conf.LogLevel = "debug";
+#else
+                conf.PlayerName = "GPT";
+                conf.LogLevel = "information";
+#endif
+                conf.OpenAIEngine = "davinci-002";
+
+                var instances = "";
+                while (!int.TryParse(instances, out _))
                 {
                     Console.Write("Number of instances: ");
-                    conf.WorkerCount = int.Parse(Console.ReadLine() ?? "1");
+                    instances = Console.ReadLine() ?? "";
+                }
+                var roomCode = "";
+                while (roomCode.Length != 4 || !roomCode.All(char.IsLetter))
+                {
                     Console.Write("Room Code: ");
-                    conf.RoomCode = (Console.ReadLine() ?? "ZZZZ").Trim();
-                    Startup.Bootstrap(conf).Wait();
-                });
-#else
-            Parser.Default.ParseArguments<CommandLineConfigurationProvider>(args)
-                .WithParsed((conf) => Startup.Bootstrap(conf).Wait());
-#endif
+                    roomCode = Console.ReadLine() ?? "";
+                }
+
+                conf.WorkerCount = int.Parse(instances);
+                conf.RoomCode = roomCode;
+                Startup.Bootstrap(conf).Wait();
+            }
+            else
+            {
+                Parser.Default.ParseArguments<CommandLineConfigurationProvider>(args)
+                    .WithParsed((conf) => Startup.Bootstrap(conf).Wait());
+            }
         }
     }
 }
