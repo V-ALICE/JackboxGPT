@@ -19,6 +19,18 @@ namespace JackboxGPT3.Games.Fibbage3.Models
             }
         }
 
+        public List<string> SuggestionChoices
+        {
+            get
+            {
+                if (State != RoomState.EnterText || Suggestions == null)
+                    return new List<string>();
+
+                var parsed = JsonConvert.DeserializeObject<List<string>>(Suggestions.ToString());
+                return parsed;
+            }
+        }
+
         public List<LieChoice> LieChoices
         {
             get
@@ -75,5 +87,8 @@ namespace JackboxGPT3.Games.Fibbage3.Models
         
         [JsonProperty("answerDelim")]
         public string AnswerDelim { get; set; }
+
+        [JsonProperty("suggestions")]
+        public JRaw Suggestions { get; set; }
     }
 }

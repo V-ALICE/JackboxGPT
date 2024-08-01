@@ -10,6 +10,12 @@ namespace JackboxGPT3.Games.Fibbage3
     {
         public Fibbage3Client(IConfigurationProvider configuration, ILogger logger, int instance) : base(configuration, logger, instance) { }
 
+        public void RequestSuggestions()
+        {
+            var req = new SuggestionsRequest();
+            ClientSend(req);
+        }
+
         public void ChooseCategory(int index)
         {
             var req = new ChooseRequest<int>(index);

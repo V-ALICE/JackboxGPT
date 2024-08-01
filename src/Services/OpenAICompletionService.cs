@@ -19,7 +19,7 @@ namespace JackboxGPT3.Services
         /// <summary>
         /// Instantiate an <see cref="OpenAICompletionService"/> from the environment.
         /// </summary>
-        public OpenAICompletionService(IConfigurationProvider configuration) : this(Environment.GetEnvironmentVariable("OPENAI_KEY"), configuration) { }
+        public OpenAICompletionService(IConfigurationProvider configuration) : this(Environment.GetEnvironmentVariable("OPENAI_API_KEY"), configuration) { }
 
         private OpenAICompletionService(string apiKey, IConfigurationProvider configuration)
         {

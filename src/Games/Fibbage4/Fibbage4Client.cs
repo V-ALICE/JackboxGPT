@@ -33,29 +33,45 @@ namespace JackboxGPT3.Games.Fibbage4
             ClientUpdate(req, KEY_CHOOSE);
         }
 
-        public void SubmitLie(string lie)
+        public void SubmitLie(string lie, bool usedSuggestion = false)
         {
             ClientUpdate(lie, KEY_ENTRYBOX1_SUBMIT);
-            var req = new AnswerRequest();
-            ClientUpdate(req, KEY_ENTRYBOX_ACTION);
+            if (usedSuggestion)
+            {
+                var req = new SuggestionsRequest();
+                ClientUpdate(req, KEY_ENTRYBOX_ACTION);
+            }
+            else
+            {
+                var req = new AnswerRequest();
+                ClientUpdate(req, KEY_ENTRYBOX_ACTION);
+            }
         }
 
-        public void SubmitDoubleLie(string lie1, string lie2)
+        public void SubmitDoubleLie(string lie1, string lie2, bool usedSuggestion = false)
         {
             ClientUpdate(lie1, KEY_ENTRYBOX1_SUBMIT);
             ClientUpdate(lie2, KEY_ENTRYBOX2_SUBMIT);
-            var req = new AnswerRequest();
-            ClientUpdate(req, KEY_ENTRYBOX_ACTION);
+            if (usedSuggestion)
+            {
+                var req = new SuggestionsRequest();
+                ClientUpdate(req, KEY_ENTRYBOX_ACTION);
+            }
+            else
+            {
+                var req = new AnswerRequest();
+                ClientUpdate(req, KEY_ENTRYBOX_ACTION);
+            }
         }
 
+        // For fibbage 4 there are no room ops, everything is in the player ops
         protected override void HandleOperation(IOperation op)
         {
             if (op.Key == $"{KEY_PLAYER_PREFIX}{_gameState.PlayerId}")
             {
-                //Console.WriteLine(op.Value);
-                var room = JsonConvert.DeserializeObject<Fibbage4Room>(op.Value);
-                InvokeOnRoomUpdateEvent(this, new Revision<Fibbage4Room>(_gameState.Room, room));
-                _gameState.Room = room;
+                var self = JsonConvert.DeserializeObject<Fibbage4Player>(op.Value);
+                InvokeOnSelfUpdateEvent(this, new Revision<Fibbage4Player>(_gameState.Self, self));
+                _gameState.Self = self;
             }
         }
 

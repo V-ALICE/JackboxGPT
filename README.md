@@ -12,11 +12,11 @@ This project is a Jackbox client controlled by GPT-3. It currently supports thes
 
 ## Playing
 
-You'll need to provide your OpenAI API key in the environment variable `OPENAI_KEY`.
+You'll need to provide your OpenAI API key as an environment variable `OPENAI_API_KEY`.
 
-To play a game, provide the room code for a supported game as the first parameter on the command line.
+To play a game, simply run the compiled executable and enter "Number of Instances" and "Room Code" when prompted. The executable can also be run with command line args as input, run with the `--help` option to see usage information.
 
-## Adding Games
+## Adding Games Yourself
 
 If you wish to contribute and add support for a new game, it's pretty simple. Just follow this guide:
 

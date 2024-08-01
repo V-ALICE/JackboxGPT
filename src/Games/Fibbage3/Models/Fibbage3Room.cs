@@ -41,6 +41,18 @@ namespace JackboxGPT3.Games.Fibbage3.Models
             }
         }
 
+        public List<string> SuggestionBackupChoices
+        {
+            get
+            {
+                if (State != RoomState.EnterText || Suggestions == null)
+                    return new List<string>();
+
+                var parsed = JsonConvert.DeserializeObject<List<string>>(Suggestions.ToString());
+                return parsed;
+            }
+        }
+
         // ReSharper disable once UnusedMember.Global
         public List<LieChoice> LieChoices
         {
@@ -77,5 +89,8 @@ namespace JackboxGPT3.Games.Fibbage3.Models
 
         [JsonProperty("question")]
         public string Question { get; set; }
+
+        [JsonProperty("suggestions")]
+        public JRaw Suggestions { get; set; }
     }
 }

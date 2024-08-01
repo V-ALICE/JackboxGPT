@@ -19,6 +19,18 @@ namespace JackboxGPT3.Games.Fibbage2.Models
             }
         }
 
+        public List<string> SuggestionChoices
+        {
+            get
+            {
+                if (State != RoomState.Gameplay_EnterLie || Suggestions == null)
+                    return new List<string>();
+
+                var parsed = JsonConvert.DeserializeObject<List<string>>(Suggestions.ToString());
+                return parsed;
+            }
+        }
+
         public List<LieChoices> LieChoices
         {
             get

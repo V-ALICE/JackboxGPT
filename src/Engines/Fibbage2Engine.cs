@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using JackboxGPT3.Extensions;
 using JackboxGPT3.Games.Common.Models;
 using JackboxGPT3.Games.Fibbage2;
@@ -25,21 +24,12 @@ namespace JackboxGPT3.Engines
         {
             var self = revision.New;
 
-            if (JackboxClient.GameState.Room.State == RoomState.Gameplay_CategorySelection
-                || JackboxClient.GameState.Room.State == RoomState.Gameplay_Round
-                || self.Error != null)
+            if (self.ShowError)
             {
-                if (self.ShowError)
-                {
-                    LogWarning($"Received submission error from game: {self.Error}");
-                    if (self.Error.Contains("too close to the truth")) // TODO: find out what the fibbage 1/2 wording is
-                        FailureCounter += 1;
-                }
-                else
-                {
-                    FailureCounter = 0;
-                }
-
+                // Fibbage 1 and 2 don't seem to have error messages, just a flag
+                // Maybe because this is the only type of error that is reported back?
+                LogInfo("The submitted lie was too close to the truth. Generating a new lie...");
+                RetryCount += 1;
                 LieLock = TruthLock = false;
             }
 
@@ -50,7 +40,7 @@ namespace JackboxGPT3.Engines
                 ChooseRandomCategory();
 
             if (JackboxClient.GameState.Room.State == RoomState.Gameplay_EnterLie && !LieLock)
-                SubmitLie(self);
+                SubmitLie();
 
             if (JackboxClient.GameState.Room.State == RoomState.Gameplay_ChooseLie && !TruthLock)
                 SubmitTruth(self);
@@ -59,52 +49,34 @@ namespace JackboxGPT3.Engines
         private void OnRoomUpdate(object sender, Revision<Fibbage2Room> revision)
         {
             var room = revision.New;
-            LogDebug($"New room state: {room.State}", true);
+            if (revision.Old.State != revision.New.State)
+                LogDebug($"New room state: {room.State}", true);
+
+            if (room.State == RoomState.Gameplay_CategorySelection || room.State == RoomState.Gameplay_Round)
+            {
+                RetryCount = 0;
+                LieLock = TruthLock = false;
+            }
         }
         
         #region Game Actions
-        private async void SubmitLie(Fibbage2Player self)
+        private async void SubmitLie()
         {
-            LieLock = true;
-
-            if (FailureCounter > MaxFailures)
-            {
-                LogInfo("Submitting default answer because there were too many submission errors.");
-                JackboxClient.SubmitLie("NO ANSWER", false); // TODO: use suggestion
-                FailureCounter = 0;
-                return;
-            }
-
-            var prompt = CleanPromptForEntry(JackboxClient.GameState.Room.Question);
-            LogInfo($"Asking GPT-3 for lie in response to \"{prompt}\".", true);
-
-            var lie = await ProvideLie(prompt, 45);
-            LogInfo($"Submitting lie \"{lie}\"");
-
-            JackboxClient.SubmitLie(lie, false);
+            var lie = await FormLie(JackboxClient.GameState.Room.Question);
+            JackboxClient.SubmitLie(lie, RetryCount > MAX_SUBMISSION_RETRIES);
         }
 
         private async void SubmitTruth(Fibbage2Player self)
         {
-            TruthLock = true;
-
-            var prompt = CleanPromptForEntry(JackboxClient.GameState.Room.Question);
-            LogInfo("Asking GPT-3 to choose truth.", true);
-
-            var choices = self.LieChoices;
-            var choicesStr = choices.Aggregate("", (current, a) => current + (a.Text + ", "))[..^2];
-            LogInfo($"Asking GPT-3 to choose truth out of these options [{choicesStr}].", true);
-            var truth = await ProvideTruth(prompt, choices);
-            LogInfo($"Submitting truth {truth} (\"{choices[truth].Text}\")");
-
-            JackboxClient.ChooseTruth(choices[truth].Text);
+            var truth = await FormTruth(JackboxClient.GameState.Room.Question, self.LieChoices);
+            JackboxClient.ChooseTruth(self.LieChoices[truth].Text);
         }
 
         private async void ChooseRandomCategory()
         {
             var room = JackboxClient.GameState.Room;
-            
-            LogInfo("Time to choose a category.", prefix: "\n\n");
+
+            LogInfo("Time to choose a category.", prefix: "\n");
             await Task.Delay(3000);
 
             var choices = room.CategoryChoices;
@@ -125,9 +97,16 @@ namespace JackboxGPT3.Engines
         #endregion
 
         #region Prompt Cleanup
-        private static string CleanPromptForEntry(string prompt)
+        protected override string GetDefaultLie()
         {
-            return prompt.StripHtml();
+            var choices = JackboxClient.GameState.Self.SuggestionChoices;
+            if (choices.Count == 0)
+            {
+                LogDebug("No suggestions were available when trying to get a default answer. Submitting base default answer");
+                return base.GetDefaultLie();
+            }
+
+            return choices[choices.RandomIndex()];
         }
         #endregion
     }

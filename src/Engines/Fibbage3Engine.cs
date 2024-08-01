@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using JackboxGPT3.Extensions;
 using JackboxGPT3.Games.Common.Models;
@@ -13,7 +13,13 @@ namespace JackboxGPT3.Engines
     public class Fibbage3Engine : BaseFibbageEngine<Fibbage3Client>
     {
         protected override string Tag => "fibbage3";
-        
+
+        // Only used for a very specific edge case in GetDefaultDoubleLie
+        private const string IGNORE_MARKER = "_INPUT_UNUSED";
+
+        // Fibbage 3 sends suggestions in a follow up which messes up the usual logic
+        private List<string> _suggestionsRef;
+
         public Fibbage3Engine(ICompletionService completionService, ILogger logger, Fibbage3Client client, int instance)
             : base(completionService, logger, client, instance)
         {
@@ -25,14 +31,31 @@ namespace JackboxGPT3.Engines
         private void OnSelfUpdate(object sender, Revision<Fibbage3Player> revision)
         {
             var self = revision.New;
-            
+
             if (JackboxClient.GameState.Room.State == RoomState.EndShortie || self.Error != null)
             {
                 if (self.Error != null)
                 {
-                    LogWarning($"Received submission error from game: {self.Error}");
                     if (self.Error.Contains("too close to the truth"))
-                        FailureCounter += 1;
+                    {
+                        LogInfo("The submitted lie was too close to the truth. Generating a new lie...");
+                        RetryCount += 1;
+                        if (RetryCount > MAX_SUBMISSION_RETRIES)
+                        {
+                            // Fibbage 3 gives everyone the same suggestions by default, this requests unique ones so that the AI overlaps less
+                            JackboxClient.RequestSuggestions();
+                            LieLock = TruthLock = false;
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        LogWarning($"Received submission error from game: \"{self.Error}\"");
+                    }
+                }
+                else
+                {
+                    RetryCount = 0;
                 }
 
                 LieLock = TruthLock = false;
@@ -42,10 +65,17 @@ namespace JackboxGPT3.Engines
                 ChooseRandomCategory();
 
             if (JackboxClient.GameState.Room.State == RoomState.EnterText && !LieLock)
+            {
+                // Wait for suggestions if needed, since they need to be requested
+                _suggestionsRef = self.SuggestionChoices;
+                if (RetryCount > MAX_SUBMISSION_RETRIES && _suggestionsRef.Count == 0)
+                    return;
+
                 if (self.DoubleInput)
                     SubmitDoubleLie(self);
                 else
                     SubmitLie(self);
+            }
 
             if (JackboxClient.GameState.Room.State == RoomState.ChooseLie && !TruthLock)
                 SubmitTruth(self);
@@ -54,74 +84,42 @@ namespace JackboxGPT3.Engines
         private void OnRoomUpdate(object sender, Revision<Fibbage3Room> revision)
         {
             var room = revision.New;
-            LogDebug($"New room state: {room.State}", true);
+            if (revision.Old.State != revision.New.State)
+                LogDebug($"New room state: {room.State}", true);
         }
         
         #region Game Actions
         private async void SubmitLie(Fibbage3Player self)
         {
-            LieLock = true;
-
-            if (FailureCounter > MaxFailures)
-            {
-                LogInfo("Submitting default answer because there were too many submission errors.");
-                JackboxClient.SubmitLie("NO ANSWER");
-                FailureCounter = 0;
-                return;
-            }
-
-            var prompt = CleanPromptForEntry(self.Question);
-            LogInfo($"Asking GPT-3 for lie in response to \"{prompt}\".", true);
-
-            var lie = await ProvideLie(prompt, 45);
-            LogInfo($"Submitting lie \"{lie}\"");
-
+            var lie = await FormLie(self.Question, self.MaxLength);
             JackboxClient.SubmitLie(lie);
         }
         
         private async void SubmitDoubleLie(Fibbage3Player self)
         {
-            LieLock = true;
-
-            if (FailureCounter > MaxFailures)
+            var lieParts = await FormDoubleLie(self.Question, self.AnswerDelim, self.MaxLength);
+            if (lieParts.Item2 == IGNORE_MARKER)
             {
-                LogInfo("Submitting default answer because there were too many submission errors.");
-                JackboxClient.SubmitLie(string.Join(self.AnswerDelim, "NO", "ANSWER"));
-                FailureCounter = 0;
-                return;
+                JackboxClient.SubmitLie(lieParts.Item1);
             }
-
-            var prompt = CleanPromptForEntry(self.Question);
-            LogInfo($"Asking GPT-3 for double lie in response to \"{prompt}\".", true);
-
-            var lieParts = await ProvideDoubleLie(prompt, self.AnswerDelim, self.MaxLength);
-            var lie = string.Join(self.AnswerDelim, lieParts.Item1, lieParts.Item2);
-            LogInfo($"Submitting double lie \"{lie}\"");
-
-            JackboxClient.SubmitLie(lie);
+            else
+            {
+                var lie = string.Join(self.AnswerDelim, lieParts.Item1, lieParts.Item2);
+                JackboxClient.SubmitLie(lie);
+            }
         }
 
         private async void SubmitTruth(Fibbage3Player self)
         {
-            TruthLock = true;
-
-            var prompt = CleanPromptForEntry(JackboxClient.GameState.Room.Question);
-            LogInfo("Asking GPT-3 to choose truth.", true);
-
-            var choices = self.LieChoices;
-            var choicesStr = choices.Aggregate("", (current, a) => current + (a.Text + ", "))[..^2];
-            LogInfo($"Asking GPT-3 to choose truth out of these options [{choicesStr}].", true);
-            var truth = await ProvideTruth(prompt, choices);
-            LogInfo($"Submitting truth {truth} (\"{choices[truth].Text}\")");
-
-            JackboxClient.ChooseTruth(truth, choices[truth].Text);
+            var truth = await FormTruth(JackboxClient.GameState.Room.Question, self.LieChoices);
+            JackboxClient.ChooseTruth(truth, self.LieChoices[truth].Text);
         }
 
         private async void ChooseRandomCategory()
         {
             var room = JackboxClient.GameState.Room;
-            
-            LogInfo("Time to choose a category.", prefix: "\n\n");
+
+            LogInfo("Time to choose a category.", prefix: "\n");
             await Task.Delay(3000);
 
             var choices = room.CategoryChoices;
@@ -133,9 +131,38 @@ namespace JackboxGPT3.Engines
         #endregion
 
         #region Prompt Cleanup
-        private static string CleanPromptForEntry(string prompt)
+
+        protected override string GetDefaultLie()
         {
-            return prompt.StripHtml();
+            var choices = _suggestionsRef.Count > 0 ? _suggestionsRef : JackboxClient.GameState.Room.SuggestionBackupChoices;
+            if (choices.Count == 0)
+            {
+                LogDebug("No suggestions were available when trying to get a default answer. Submitting base default answer");
+                return base.GetDefaultLie();
+            }
+
+            return choices[choices.RandomIndex()];
+        }
+
+        protected override Tuple<string, string> GetDefaultDoubleLie()
+        {
+            var choices = _suggestionsRef.Count > 0 ? _suggestionsRef : JackboxClient.GameState.Room.SuggestionBackupChoices;
+            var delim = JackboxClient.GameState.Self.AnswerDelim;
+            if (choices.Count == 0)
+            {
+                LogDebug("No suggestions were available when trying to get a default answer. Submitting base default answer");
+                return base.GetDefaultDoubleLie();
+            }
+
+            var choice = choices[choices.RandomIndex()];
+            var parts = choice.Split(delim);
+            if (parts.Length != 2)
+            {
+                LogDebug($"Encounted indeterminate sectioning when trying to split \"{choice}\" by \"{delim}\"");
+                return new Tuple<string, string>(choice, IGNORE_MARKER);
+            }
+
+            return new Tuple<string, string>(parts[0], parts[1]);
         }
         #endregion
     }
