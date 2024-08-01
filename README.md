@@ -4,8 +4,7 @@ Because I wanted to use AI for party games instead of useful things.
 
 This project is a Jackbox client controlled by GPT-3. It currently supports these games:
 
-- Fibbage 3
-- Fibbage 4
+- Fibbage XL/2/3/4
 - Quiplash 3
 - Word Spud _(always votes positively for now)_
 - Survive the Internet _(chooses images/votes randomly for now)_

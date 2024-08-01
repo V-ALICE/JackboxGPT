@@ -83,7 +83,7 @@ namespace JackboxGPT3.Engines
             if (FailureCounter > MaxFailures)
             {
                 LogInfo("Submitting default answer because there were too many submission errors.");
-                JackboxClient.SubmitLie("NO ANSWER");
+                JackboxClient.SubmitLie("NO ANSWER"); // TODO: use suggestion
                 FailureCounter = 0;
                 return;
             }
