@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using JackboxGPT3.Extensions;
 using JackboxGPT3.Games.Common;
 using JackboxGPT3.Games.Common.Models;
 using JackboxGPT3.Services;
@@ -15,8 +16,13 @@ namespace JackboxGPT3.Engines
     {
         protected bool LieLock;
         protected bool TruthLock;
-        protected int FailureCounter = 0;
-        protected readonly int MaxFailures = 5;
+
+        // Limit the amount of "too close to the answer" error retries
+        protected int RetryCount;
+        protected const int MAX_SUBMISSION_RETRIES = 1;
+
+        // Used solely for logging, since they submitted answer is not returned with the list of choices
+        private string _myLastAnswer = "";
 
         protected BaseFibbageEngine(ICompletionService completionService, ILogger logger, TClient client, int instance)
             : base(completionService, logger, client, instance)
@@ -28,18 +34,39 @@ namespace JackboxGPT3.Engines
             input = input.ToUpper();
             prompt = prompt.ToUpper();
 
+            // Characters that often indicate that the answer will be unreasonable to try to use
+            var badMarkers = new[] { ';', ':' };
+            if (badMarkers.Any(c => input.Contains(c)))
+            {
+                return "";
+            }
+
             // Characters that mark the end of a reasonable answer
-            var clipMarkers = new[] { '?', '!', ';', ':', '?' };
+            var clipMarkers = new[] { '?', '!', '?' };
             var clipIdx = input.IndexOfAny(clipMarkers);
             var clipped = clipIdx >= 0 ? input[..clipIdx] : input;
 
+            // An odd amount of quotes implies that something got cut off, in which case this answer isn't reasonable anymore
+            if (input.Contains('"') && input.Split('"').Length % 2 == 0)
+                return "";
+
             // Characters that shouldn't be in a submitted answer
-            var removals = new[] { "\"", "\n", "\r", "\t", "..." };
-            clipped = removals.Aggregate(clipped, (current, r) => current.Replace(r, null));
+            var removals = new[] { "\n", "\r", "\t", "...", "[", "]", "{", "}", "`", "(", ")", "\\" };
+            foreach (var r in removals)
+                clipped = clipped.Replace(r, null);
+
+            // Quotes shouldn't be on both ends of a submitted answer, but are allowed within a submitted answer
+            if (clipped.StartsWith('"') && clipped.EndsWith('"'))
+                clipped = clipped.TrimQuotes();
+            if (clipped.StartsWith('“') && clipped.EndsWith('”'))
+                clipped = clipped.TrimQuotes();
 
             // Characters that shouldn't be on the front or back of a submitted answer
             var endRemovals = new[] { '.', ' ', ',' };
-            clipped = clipped.Trim(endRemovals).Replace("  ", " "); // Additionally remove any double spaces that previous changes may have created
+            clipped = clipped.Trim(endRemovals);
+
+            // Remove any double spaces that previous changes may have created
+            clipped = clipped.Trim().Replace("  ", " "); 
 
             // Sometimes the AI likes to include pieces of the prompt at the end of its answer (i.e. "at the _______ exhibit." -> "art exhibit")
             // Removing these might not always be correct since there are (probably) instances where such duplication makes sense
@@ -52,12 +79,15 @@ namespace JackboxGPT3.Engines
                 clipped = clipped[..^overlap.Length].Trim(endRemovals);
             }
 
+            // Remove any double spaces that previous changes may have created (again)
+            clipped = clipped.Trim().Replace("  ", " ");
+
             if (logChanges && input.Length != clipped.Length)
-                LogInfo($"Edited AI response from \"{input}\" to \"{clipped}\"");
+                LogDebug($"Edited AI response from \"{input}\" to \"{clipped}\"");
             return clipped;
         }
 
-        protected async Task<string> ProvideLie(string fibPrompt, int maxLength)
+        private async Task<string> ProvideLie(string fibPrompt, int maxLength)
         {
             var prompt = $@"Here are some prompts from the game Fibbage, in which players attempt to write convincing lies to trick others.
 
@@ -85,15 +115,19 @@ A:";
             {
                 var cleanText = CleanResult(completion.Text.Trim(), fibPrompt);
                 if (cleanText.Length > 0 && cleanText.Length <= maxLength && !cleanText.Contains("__")) return true;
-                LogDebug($"Received unusable ProvideLie response: {completion.Text.Trim()}");
+
+                LogDebug($"Received unusable ProvideLie response: \"{completion.Text.Trim()}\"");
                 return false;
             },
-            defaultResponse: "Default Response");
+            defaultResponse: "");
+
+            if (result.Text.Length == 0)
+                return GetDefaultLie();
 
             return CleanResult(result.Text.Trim(), fibPrompt, true);
         }
         
-        protected async Task<Tuple<string, string>> ProvideDoubleLie(string fibPrompt, string delim, int maxLength)
+        private async Task<Tuple<string, string>> ProvideDoubleLie(string fibPrompt, int maxLength)
         {
             var prompt = $@"Here are some prompts from the game Fibbage, in which players attempt to write convincing lies to trick others. These prompts require two responses, separated by the | character.
 
@@ -133,16 +167,19 @@ A:";
                         // pass
                     }
 
-                    LogDebug($"Received unusable ProvideDoubleLie response: {completion.Text.Trim()}");
+                    LogDebug($"Received unusable ProvideDoubleLie response: \"{completion.Text.Trim()}\"");
                     return false;
                 },
-                defaultResponse: "default|response");
+                defaultResponse: "");
+
+            if (result.Text.Length == 0)
+                return GetDefaultDoubleLie();
 
             var split = result.Text.Trim().Split('|');
             return new Tuple<string, string>(CleanResult(split[0], logChanges: true), CleanResult(split[1], fibPrompt, true));
         }
 
-        protected async Task<int> ProvideTruth<T>(string fibPrompt, IReadOnlyList<T> lies) where T : ISelectionChoice
+        private async Task<int> ProvideTruth<T>(string fibPrompt, IReadOnlyList<T> lies) where T : ISelectionChoice
         {
             var options = "";
 
@@ -197,7 +234,7 @@ I think the truth is answer number: ";
 
                 LogDebug($"Received unusable ProvideTruth response: {completion.Text.Trim()}");
                 return false;
-            }, 
+            },
             defaultResponse: defaultResp);
 
             if (result.Text != defaultResp)
@@ -207,5 +244,85 @@ I think the truth is answer number: ";
             return new Random().Next(lies.Count);
         }
 
+        protected async Task<string> FormLie(string question, int maxLength = 45)
+        {
+            LieLock = true;
+
+            string lie;
+            if (RetryCount > MAX_SUBMISSION_RETRIES)
+            {
+                RetryCount = 0;
+                LogInfo("Submitting a default answer because there were too many submission errors.");
+
+                lie = GetDefaultLie();
+            }
+            else
+            {
+                var prompt = CleanPromptForEntry(question);
+                if (RetryCount == 0)
+                    LogInfo($"Asking GPT-3 for lie in response to \"{prompt}\"", true, prefix: "\n\n\n");
+
+                lie = await ProvideLie(prompt, maxLength);
+            }
+
+            LogInfo($"Submitting lie \"{lie}\"");
+            _myLastAnswer = lie;
+            return lie;
+        }
+
+        protected async Task<Tuple<string, string>> FormDoubleLie(string question, string answerDelim, int maxLength = 45)
+        {
+            LieLock = true;
+
+            Tuple<string, string> lie;
+            if (RetryCount > MAX_SUBMISSION_RETRIES)
+            {
+                RetryCount = 0;
+                LogInfo("Submitting a default answer because there were too many submission errors.");
+
+                lie = GetDefaultDoubleLie();
+            }
+            else
+            {
+                var prompt = CleanPromptForEntry(question);
+                if (RetryCount == 0)
+                    LogInfo($"Asking GPT-3 for double lie in response to \"{prompt}\"", true, prefix: "\n\n\n");
+
+                lie = await ProvideDoubleLie(prompt, maxLength);
+            }
+
+            LogInfo($"Submitting double lie \"{lie.Item1}{answerDelim}{lie.Item2}\"");
+            _myLastAnswer = string.Join(answerDelim, lie.Item1, lie.Item2);
+            return lie;
+        }
+
+        protected async Task<int> FormTruth<T>(string question, IReadOnlyList<T> choices) where T : ISelectionChoice
+        {
+            TruthLock = true;
+
+            var prompt = CleanPromptForEntry(question);
+            var choicesStr = choices.Aggregate("", (current, a) => current + ("\"" + a.SelectionText + "\", "));
+            choicesStr += _myLastAnswer;
+            LogInfo($"Asking GPT-3 to choose truth out of these options [{choicesStr}]", true, prefix: "\n");
+
+            var truth = await ProvideTruth(prompt, choices);
+            LogInfo($"Submitting truth {truth} (\"{choices[truth].SelectionText}\")");
+            return truth;
+        }
+
+        protected virtual string CleanPromptForEntry(string prompt)
+        {
+            return prompt.StripHtml();
+        }
+
+        protected virtual string GetDefaultLie()
+        {
+            return "Default Response";
+        }
+
+        protected virtual Tuple<string, string> GetDefaultDoubleLie()
+        {
+            return new Tuple<string, string>("Default", "Response");
+        }
     }
 }
