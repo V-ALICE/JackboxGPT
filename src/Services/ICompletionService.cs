@@ -60,7 +60,8 @@ namespace JackboxGPT3.Services
 
         public Task<List<SearchResponse>> SemanticSearch(
             string query,
-            IList<string> documents
+            IList<string> documents,
+            int maxTries = 3
         );
     }
 }

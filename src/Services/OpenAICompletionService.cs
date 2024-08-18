@@ -41,19 +41,28 @@ namespace JackboxGPT3.Services
             while(!validResponse && tries < maxTries)
             {
                 tries++;
-                var apiResult = await _api.Completions.CreateCompletionAsync(
-                    prompt,
-                    _model,
-                    completionParameters.MaxTokens,
-                    completionParameters.Temperature,
-                    completionParameters.TopP,
-                    1,
-                    logProbs: completionParameters.LogProbs,
-                    echo: completionParameters.Echo,
-                    presencePenalty: completionParameters.PresencePenalty,
-                    frequencyPenalty: completionParameters.FrequencyPenalty,
-                    stopSequences: completionParameters.StopSequences
-                );
+                CompletionResult apiResult;
+                try
+                {
+                    apiResult = await _api.Completions.CreateCompletionAsync(
+                        prompt,
+                        _model,
+                        completionParameters.MaxTokens,
+                        completionParameters.Temperature,
+                        completionParameters.TopP,
+                        1,
+                        logProbs: completionParameters.LogProbs,
+                        echo: completionParameters.Echo,
+                        presencePenalty: completionParameters.PresencePenalty,
+                        frequencyPenalty: completionParameters.FrequencyPenalty,
+                        stopSequences: completionParameters.StopSequences
+                    );
+                }
+                catch (HttpRequestException)
+                {
+                    await Task.Delay(100);
+                    continue;
+                }
 
                 result = ChoiceToCompletionResponse(apiResult.Completions[0]);
 
@@ -86,19 +95,28 @@ namespace JackboxGPT3.Services
             while(!validResponse && tries < maxTries)
             {
                 tries++;
-                var apiResult = await _api.Completions.CreateCompletionAsync(
-                    prompt,
-                    _model,
-                    completionParameters.MaxTokens,
-                    completionParameters.Temperature,
-                    completionParameters.TopP,
-                    1,
-                    logProbs: completionParameters.LogProbs,
-                    echo: completionParameters.Echo,
-                    presencePenalty: completionParameters.PresencePenalty,
-                    frequencyPenalty: completionParameters.FrequencyPenalty,
-                    stopSequences: completionParameters.StopSequences
-                );
+                CompletionResult apiResult;
+                try
+                {
+                    apiResult = await _api.Completions.CreateCompletionAsync(
+                        prompt,
+                        _model,
+                        completionParameters.MaxTokens,
+                        completionParameters.Temperature,
+                        completionParameters.TopP,
+                        1,
+                        logProbs: completionParameters.LogProbs,
+                        echo: completionParameters.Echo,
+                        presencePenalty: completionParameters.PresencePenalty,
+                        frequencyPenalty: completionParameters.FrequencyPenalty,
+                        stopSequences: completionParameters.StopSequences
+                    );
+                }
+                catch (HttpRequestException)
+                {
+                    await Task.Delay(100);
+                    continue;
+                }
 
                 var result = ChoiceToCompletionResponse(apiResult.Completions[0]);
                 processedResult = process(result);
@@ -133,19 +151,25 @@ namespace JackboxGPT3.Services
             return dotProduct / (Math.Sqrt(norm1) * Math.Sqrt(norm2));
         }
 
-        public async Task<List<SearchResponse>> SemanticSearch(string query, IList<string> documents)
+        public async Task<List<SearchResponse>> SemanticSearch(string query, IList<string> documents, int maxTries = 3)
         {
-
             var queryEmbedding = Array.Empty<float>();
             var documentEmbeddings = Array.Empty<float[]>();
-            try
+            var tries = 0;
+
+            while (tries < maxTries)
             {
-                queryEmbedding = await _api.Embeddings.GetEmbeddingsAsync(query);
-                documentEmbeddings = await Task.WhenAll(documents.Select(doc => _api.Embeddings.GetEmbeddingsAsync(doc)));
-            }
-            catch (HttpRequestException)
-            {
-                // Sometimes this will throw a 502 error, not sure why it happens randomly
+                tries++;
+                try
+                {
+                    queryEmbedding = await _api.Embeddings.GetEmbeddingsAsync(query);
+                    documentEmbeddings = await Task.WhenAll(documents.Select(doc => _api.Embeddings.GetEmbeddingsAsync(doc)));
+                    break;
+                }
+                catch (HttpRequestException)
+                {
+                    await Task.Delay(100);
+                }
             }
 
             var similarities = documentEmbeddings.Select((embedding, i) =>

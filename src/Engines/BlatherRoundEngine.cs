@@ -140,6 +140,9 @@ namespace JackboxGPT3.Engines
                     return SentenceResult.Skip;
 
                 var results = await CompletionService.SemanticSearch(prompt, unusedChoices);
+                if (results.Count == 0)
+                    return SentenceResult.Skip;
+
                 results.Sort((a, b) => (int)(b.Score - a.Score));
                 
                 foreach (var result in results)
@@ -203,7 +206,9 @@ namespace JackboxGPT3.Engines
                     part.Choices.Select(c => $"{c} {chosenWords}".Trim()).ToList();
         
             var results = await CompletionService.SemanticSearch(prompt, newChoices);
-            
+            if (results.Count == 0)
+                return false;
+
             results.Sort((a, b) => (int)(b.Score - a.Score));
 
             foreach (var result in results)
