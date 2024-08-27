@@ -10,6 +10,13 @@ namespace JackboxGPT3.Games.Quiplash3
     {
         public Quiplash3Client(IConfigurationProvider configuration, ILogger logger, int instance) : base(configuration, logger, instance) { }
 
+        public void RequestSafetyQuip()
+        {
+            // Weird way that this game requests a safety quip
+            var bytes = new byte[] { 0xE2, 0x81, 0x87 };
+            SubmitQuip(System.Text.Encoding.UTF8.GetString(bytes));
+        }
+
         public void ChooseCharacter(string name)
         {
             var req = new ChooseAvatarRequest(name);
