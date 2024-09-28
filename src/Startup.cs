@@ -10,6 +10,8 @@ using JackboxGPT3.Games.Common.Models;
 using JackboxGPT3.Games.Fibbage2;
 using JackboxGPT3.Games.Fibbage3;
 using JackboxGPT3.Games.Fibbage4;
+using JackboxGPT3.Games.Quiplash1;
+using JackboxGPT3.Games.Quiplash2;
 using JackboxGPT3.Games.Quiplash3;
 using JackboxGPT3.Games.SurviveTheInternet;
 using JackboxGPT3.Games.WordSpud;
@@ -105,6 +107,12 @@ namespace JackboxGPT3
 
             builder.RegisterType<Fibbage4Client>();
             builder.RegisterType<Fibbage4Engine>().Keyed<IJackboxEngine>("fourbage");
+
+            builder.RegisterType<Quiplash1Client>();
+            builder.RegisterType<Quiplash1Engine>().Keyed<IJackboxEngine>("quiplash");
+
+            builder.RegisterType<Quiplash2Client>();
+            builder.RegisterType<Quiplash2Engine>().Keyed<IJackboxEngine>("quiplash2");
 
             builder.RegisterType<Quiplash3Client>();
             builder.RegisterType<Quiplash3Engine>().Keyed<IJackboxEngine>("quiplash3");

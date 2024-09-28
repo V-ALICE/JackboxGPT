@@ -23,6 +23,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="ql2_comic_descriptions.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="sti_image_descriptions.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

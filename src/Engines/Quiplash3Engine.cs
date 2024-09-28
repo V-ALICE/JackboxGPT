@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -13,12 +12,11 @@ using Serilog;
 
 namespace JackboxGPT3.Engines
 {
-    public class Quiplash3Engine : BaseJackboxEngine<Quiplash3Client>
+    public class Quiplash3Engine : BaseQuiplashEngine<Quiplash3Client>
     {
         protected override string Tag => "quiplash3";
 
         private bool _selectedAvatar;
-        private readonly Random _random = new();
 
         public Quiplash3Engine(ICompletionService completionService, ILogger logger, Quiplash3Client client, int instance)
             : base(completionService, logger, client, instance)
@@ -30,6 +28,9 @@ namespace JackboxGPT3.Engines
 
         private void OnSelfUpdate(object sender, Revision<Quiplash3Player> revision)
         {
+            if (revision.Old.State != revision.New.State)
+                LogDebug($"New room state: {revision.New.State}", true);
+
             switch (revision.New.State)
             {
                 case RoomState.EnterSingleText:
@@ -59,124 +60,72 @@ namespace JackboxGPT3.Engines
 
         private async void VoteQuip(Quiplash3Player self)
         {
-            var prompt = CleanPromptForSelection(self.Prompt.Html);
-            if (prompt == "") return;
-            
-            LogInfo("Asking GPT-3 to choose favorite quip.");
+            if (self.Prompt.Html == null) return;
 
-            var quips = self.Choices.Select(choice => CleanQuipForSelection(choice.Html)).ToList();
-            var favorite = await ProvideFavorite(prompt, quips);
-            
-            LogInfo($"Choosing \"{quips[favorite]}\".");
-            
+            var quips = self.Choices.Select(choice => choice.Html).ToList();
+            var favorite = await FormVote(self.Prompt.Html, quips);
             JackboxClient.ChooseFavorite(favorite);
         }
         
         private async void VoteThrip(Quiplash3Player self)
         {
+            if (self.Prompt.Html == null) return;
             var prompt = CleanPromptForSelection(self.Prompt.Html);
             if (prompt == "") return;
-            
-            LogInfo("Asking GPT-3 to choose favorite thrip.");
 
             var thrips = self.Choices.Select(choice => CleanThripForSelection(choice.Html)).ToList();
+            
             var favorite = await ProvideFavorite(prompt, thrips);
-            
-            LogInfo($"Choosing \"{thrips[favorite]}\".");
-            
+            LogDebug($"Choosing \"{thrips[favorite]}\"");
             JackboxClient.ChooseFavorite(favorite);
         }
 
         private async void SubmitQuip(Quiplash3Player self)
         {
             if (self.Prompt.Html == null) return;
-            var prompt = CleanPromptForEntry(self.Prompt.Html);
-            if (prompt == "") return;
-            
-            LogInfo($"Asking GPT-3 for response to \"{prompt}\".");
-            
-            var quip = await ProvideQuip(prompt);
-            LogInfo($"Responding with \"{quip}\".");
-            
-            JackboxClient.SubmitQuip(quip);
-        }
-        
-        private async Task<string> ProvideQuip(string qlPrompt)
-        {
-            var prompt = $@"Below are some questions and outlandish, funny, ridiculous answers to them.
 
-Q: Honestly, you can never have too many _______
-Funny Answer: Reasons to stay inside
-
-Q: You know a restaurant is bad when the waiter says ""_______""
-Funny Answer: I don't know, but we can find out!
-
-Q: What would you call your ANTI-social network?
-Funny Answer: Slankbook
-
-Q: Your fish are bored! You should put a _______ in their tank to amuse them.
-Funny Answer: A shark
-
-Q: {qlPrompt}
-Funny Answer:";
-            
-            LogVerbose($"GPT-3 Prompt: {prompt}");
-            
-            var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+            var quip = await FormQuip(self.Prompt.Html);
+            if (quip == "")
             {
-                Temperature = 0.5,
-                MaxTokens = 16,
-                TopP = 1,
-                FrequencyPenalty = 0.2,
-                PresencePenalty = 0.1,
-                StopSequences = new[] { "\n" }
-            }, 
-            completion =>
+                LogInfo("GPT-3 failed to come up with a response, so a Safety Quip will be used");
+                JackboxClient.RequestSafetyQuip();
+            }
+            else
             {
-                if (!completion.Text.Contains("___") && completion.Text.Length <= 45) return true;
-                LogDebug($"Received unusable ProvideQuip response: {completion.Text.Trim()}");
-                return false;
-            },
-            defaultResponse: "⁇");
-
-            return result.Text.Trim().TrimEnd('.');
+                JackboxClient.SubmitQuip(quip);
+            }
         }
-        
+
         private async void SubmitThrip(Quiplash3Player self)
         {
             if (self.Prompt.Html == null) return;
             var prompt = CleanPromptForEntry(self.Prompt.Html);
             if (prompt == "") return;
             
-            LogInfo($"Asking GPT-3 for response to \"{prompt}\".");
-            
             var quip = await ProvideThrip(prompt);
-            LogInfo($"Responding with \"{quip}\".");
-            
+            LogInfo($"GPT responded to \"{prompt}\" with \"{quip.Replace("\n", " | ")}\"");
             JackboxClient.SubmitQuip(quip);
         }
         
-        private async Task<string> ProvideThrip(string qlPrompt)
+        private async Task<string> ProvideThrip(string qlPrompt, int maxLength = 45)
         {
-            var prompt = $@"In the third round of the game Quiplash, players must take a prompt and give three different answers that make sense, separated by a | character.
+            var prompt = $@"In the third round of the game Quiplash, players must take a prompt and give three different short answers that make sense, separated by a | character.
 
-Q: Three things every good orgy has
+Question: Three things every good orgy has
 Funny Answer: scented oils|a non-disclosure agreement|disgraced politician
 
-Q: The three things you must do to survive a zombie apocalypse
-Funny Answer: hunker down|play video games|hope this all blows over
-
-Q: The only three things that can bring true happiness
+Question: The only three things that can bring true happiness
 Funny Answer: money|sex|a long hug
 
-Q: {qlPrompt}
+Question: The three things you must do to survive a zombie apocalypse
+Funny Answer: hunker down|play video games|hope this all blows over
+
+Question: {qlPrompt}
 Funny Answer:";
-            
-            LogVerbose($"GPT-3 Prompt: {prompt}");
             
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
             {
-                Temperature = 0.7,
+                Temperature = 0.75,
                 MaxTokens = 32,
                 TopP = 1,
                 FrequencyPenalty = 0.2,
@@ -185,72 +134,21 @@ Funny Answer:";
             }, 
             completion =>
             {
-                if (completion.Text.Split("|").Length == 3
-                    && !completion.Text.Contains("___")
-                    && completion.Text.Length <= 45) 
+                if (completion.Text.Split("|").Length == 3 && !completion.Text.Contains("__") && completion.Text.Length <= 3*maxLength) 
                     return true;
+
                 LogDebug($"Received unusable ProvideThrip response: {completion.Text.Trim()}");
                 return false;
             },
-            defaultResponse: "Oops|GPT-3 didn't work|Sigh");
+            defaultResponse: "GPT has failed|to formulate|an answer");
 
-            return string.Join("\n", result.Text.Split("|")).Trim();
-        }
-        
-        private async Task<int> ProvideFavorite(string qlPrompt, IReadOnlyList<string> quips)
-        {
-            var options = "";
-
-            for(var i = 0; i < quips.Count; i++)
-                options += $"{i + 1}. {quips[i]}\n";
-
-            var prompt = $"I was playing a game of Quiplash, and the prompt was \"${qlPrompt}\". These were my options:\n\n${options}\nThe funniest was prompt number";
-
-            int IntParseExt(string input)
-            {
-                if (input.Length < 1) throw new FormatException();
-
-                // Assume the response is int-parsable if it starts with a digit character
-                if (char.IsDigit(input[0])) return int.Parse(input);
-
-                // GPT likes to respond in English sometimes, so this (manually) tries to check for that
-                return input.ToUpper() switch
-                {
-                    "ONE" => 1,
-                    "TWO" => 2, // Game should have a max of two options to choose from
-                    _ => throw new FormatException() // Response was something unhandled here
-                };
-            }
-
-            var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
-            {
-                Temperature = 1,
-                MaxTokens = 1,
-                TopP = 1,
-                StopSequences = new[] { "\n" }
-            }, completion =>
-            {
-                try
-                {
-                    var answer = IntParseExt(completion.Text.Trim());
-                    return answer <= quips.Count && answer > 0;
-                }
-                catch (FormatException)
-                {
-                    // pass
-                }
-
-                LogDebug($"Received unusable ProvideFavorite response: {completion.Text.Trim()}");
-                return false;
-            },
-            defaultResponse: _random.Next(0, quips.Count).ToString());
-
-            var choice = IntParseExt(result.Text.Trim()) - 1;
-            return choice > 0 ? choice : 0;
+            var split = result.Text.Split("|");
+            var output = split.Aggregate("", (current, part) => current + CleanResult(part.Trim()) + "\n");
+            return output.Trim();
         }
 
         #region Prompt Cleanup
-        public static string CleanPromptForEntry(string prompt)
+        protected override string CleanPromptForEntry(string prompt)
         {
             prompt = prompt.ToLower();
             
@@ -259,13 +157,13 @@ Funny Answer:";
             return doc.FirstChild?.ChildNodes[1]?.InnerText.Trim() ?? "";
         }
 
-        public static string CleanPromptForSelection(string prompt)
+        protected override string CleanPromptForSelection(string prompt)
         {
             prompt = prompt.ToLower();
             return Regex.Replace(prompt, "<br \\/>.+", string.Empty).Trim();
         }
-        
-        public static string CleanQuipForSelection(string quip)
+
+        protected override string CleanQuipForSelection(string quip)
         {
             quip = quip.ToLower();
             
@@ -273,8 +171,8 @@ Funny Answer:";
             doc.LoadXml($"<root>{quip}</root>");
             return doc.InnerText.Trim();
         }
-        
-        public static string CleanThripForSelection(string thrip)
+
+        protected static string CleanThripForSelection(string thrip)
         {
             thrip = thrip.ToLower();
             
