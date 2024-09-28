@@ -3,16 +3,12 @@ using JackboxGPT3.Games.Common;
 using JackboxGPT3.Games.Common.Models;
 using JackboxGPT3.Games.Fibbage4.Models;
 using JackboxGPT3.Services;
-using Newtonsoft.Json;
 using Serilog;
 
 namespace JackboxGPT3.Games.Fibbage4
 {
-    public class Fibbage4Client : BcSerializedClient<Fibbage4Room, Fibbage4Player>
+    public class Fibbage4Client : PlayerSerializedClient<Fibbage4Room, Fibbage4Player>
     {
-        protected override string KEY_ROOM => "";
-        protected override string KEY_PLAYER_PREFIX => "player:";
-
         private const string KEY_CHOOSE = "choose";
         private const string KEY_ENTRYBOX1_SUBMIT = "entertext:entry1";
         private const string KEY_ENTRYBOX2_SUBMIT = "entertext:entry2";
@@ -61,17 +57,6 @@ namespace JackboxGPT3.Games.Fibbage4
             {
                 var req = new AnswerRequest();
                 ClientUpdate(req, KEY_ENTRYBOX_ACTION);
-            }
-        }
-
-        // For fibbage 4 there are no room ops, everything is in the player ops
-        protected override void HandleOperation(IOperation op)
-        {
-            if (op.Key == $"{KEY_PLAYER_PREFIX}{_gameState.PlayerId}")
-            {
-                var self = JsonConvert.DeserializeObject<Fibbage4Player>(op.Value);
-                InvokeOnSelfUpdateEvent(this, new Revision<Fibbage4Player>(_gameState.Self, self));
-                _gameState.Self = self;
             }
         }
 
