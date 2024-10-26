@@ -49,7 +49,7 @@ namespace JackboxGPT3.Games.Fibbage4.Models
                     return new List<string>();
 
                 var parsed = JsonConvert.DeserializeObject<List<Choice>>(Choices.ToString());
-                return parsed.Select(c => c.Text).ToList();
+                return parsed == null ? new List<string>() : parsed.Select(c => c.Text).ToList();
             }
         }
 
@@ -61,7 +61,7 @@ namespace JackboxGPT3.Games.Fibbage4.Models
                     return new List<string>();
 
                 var parsed = JsonConvert.DeserializeObject<List<string>>(Suggestions.ToString());
-                return parsed;
+                return parsed ?? new List<string>();
             }
         }
 
@@ -76,7 +76,7 @@ namespace JackboxGPT3.Games.Fibbage4.Models
                     return new List<Choice>();
 
                 var parsed = JsonConvert.DeserializeObject<List<Choice>>(Choices.ToString());
-                return parsed;
+                return parsed ?? new List<Choice>();
             }
         }
 

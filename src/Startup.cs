@@ -10,6 +10,7 @@ using JackboxGPT3.Games.Common.Models;
 using JackboxGPT3.Games.Fibbage2;
 using JackboxGPT3.Games.Fibbage3;
 using JackboxGPT3.Games.Fibbage4;
+using JackboxGPT3.Games.JokeBoat;
 using JackboxGPT3.Games.Quiplash1;
 using JackboxGPT3.Games.Quiplash2;
 using JackboxGPT3.Games.Quiplash3;
@@ -97,6 +98,8 @@ namespace JackboxGPT3
         private static void RegisterGameEngines(this ContainerBuilder builder)
         {
             // Game engines, keyed with appTag
+
+            // Fibbage 1 uses Fibbage 2 client, so nothing else to register
             builder.RegisterType<Fibbage1Engine>().Keyed<IJackboxEngine>("fibbage");
 
             builder.RegisterType<Fibbage2Client>();
@@ -125,6 +128,9 @@ namespace JackboxGPT3
             
             builder.RegisterType<BlatherRoundClient>();
             builder.RegisterType<BlatherRoundEngine>().Keyed<IJackboxEngine>("blanky-blank");
+
+            builder.RegisterType<JokeBoatClient>();
+            builder.RegisterType<JokeBoatEngine>().Keyed<IJackboxEngine>("jokeboat");
         }
     }
 }

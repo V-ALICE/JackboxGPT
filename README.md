@@ -1,44 +1,39 @@
 # JackboxGPT3
 
-Because I wanted to use AI for party games instead of useful things.
+Because we wanted to use AI for party games instead of "useful" things.
 
-This project is a Jackbox client controlled by GPT-3. It currently supports these games:
+This project is a Jackbox client controlled by GPT-3 (note: this is a pre-ChatGPT model). It currently supports these games:
 
 - Fibbage XL/2/3/4
 - Quiplash XL/2/3
-- Word Spud _(always votes positively for now)_
-- Survive the Internet _(chooses images/votes randomly for now)_
 - Blather 'Round
+- Joke Boat
+- Survive the Internet _(currently chooses images/votes randomly)_
+- Word Spud _(currently always votes positively)_
 
 ## Playing
 
-You'll need to provide your OpenAI API key as an environment variable `OPENAI_API_KEY`.
+For now the only way to run JackboxGPT3 is to build it yourself (requires .NET 6.0). You'll also need to provide an OpenAI API key as an environment variable, either set or in a `.env` file, named `OPENAI_API_KEY`.
 
 To play a game, simply run the compiled executable and enter "Number of Instances" and "Room Code" when prompted. The executable can also be run with command line args as input, run with the `--help` option to see usage information.
 
-## Adding Games Yourself
+## Adding Support for More Games
 
-If you wish to contribute and add support for a new game, it's pretty simple. Just follow this guide:
+See [this guide](Extending.md) for some information on adding more games.
 
-1. Create a new directory for the game inside of `src/Games`. It should be the title of the game formatted in PascalCase, e.g. `Fibbage3` or `SurviveTheInternet`.
-2. In the game directory, add a new `Models` directory.
-3. Create two structs to represent the game room and the game player in `Models`, named `{YourGame}Room` and `{YourGame}Player`.
-4. Create a new class named `{YourGame}Client` in the game directory. It should extend `BaseJackboxClient<{YourGame}Room, {YourGame}Player>`.
-5. Create a new class in `src/Engines` named `{YourGame}Engine` which extends `BaseJackboxEngine`.
-6. Finally, in `Startup.cs` register your client and engine in `RegisterGameEngines` with the proper app tag.
+## FAQ
 
-Ok, but what do all of these things even do?
+- "Why GPT-3 specifically and not ChatGPT or another newer model?"
+> Mostly because this project was created before ChatGPT existed, and also because I have a preference for the older models. Adding support for newer models as an option is something I might look into in the future though.
 
-### Client
+- "How well does GPT-3 perform in Jackbox games?"
+> For normal prompts/answers it does a pretty decent job (by my standards), giving a mix of answers in a range from simple/boring to wild/outlandish. Some of the games also make requests for voting on answers though, which the AI isn't any good at (newer models would be better for that particular use case).
 
-The game client handles abstracts the communication between the Jackbox server into a nice API that can be consumed by the engine.
+- "How 'behaved' is GPT-3 in Jackbox games?"
+> Currently the actual wordage of AI responses are sent to the game unfiltered (punctuation and formatting are cleaned up), so any garbage that GPT-3 might generate would come through into the game. I don't know how filtered the AI is on OpenAI's side, but rarely there are some really unfun answers that make their way into responses, so just be aware of that.
 
-You will need to do some reverse engineering work to understand the protocol each game uses to communicate. However, all Jackbox games share at least some similarities: the raw WebSocket data is sent in a consistent JSON structure, including a sequence identifier, opcode, and some body. The `BaseJackboxClient` will deserialize this for you and send it to your `ServerMessageReceived` method for further processing.
+- "Why are there no releases?"
+> Since I've been working on this mostly just for my own use there hasn't really been a need to make one. A new person running this project would already have to do extra setup (an OpenAI account with billing prepped and an API key) even if there was a prebuilt exe available, so it still wouldn't be super accessible.
 
-What you do here really depends on the game you are adding, but generally you will need to add handlers for room and player updates by overriding `ServerMessageReceived` and handling the relevant opcodes. For example, Fibbage 3 uses the opcode `text` to send objects which have a `key` and a `val` -- for room updates, the `key` is `bc:room`. When this is received, the `GameState` is updated with the room details. You can see how this is handled inside of the `ServerMessageReceived` in `Fibbage3Client`.
-
-The API you create should reflect actions a player would take in a game. For example, the Fibbage 3 client has a method `SubmitLie` which will, you know, submit a lie that answers the prompt. You may also wish to create events in your client for room updates and player updates.
-
-### Engine
-
-The engine is what uses the client API you defined above and uses GPT-3 (or any other service provided via `ICompletionService`) to play the game. With `ICompletionService` you can provide the prompt, any GPT-3 parameters you want, a set of conditions for a valid response, and how many times it should try to get a valid response before giving up. You can find some good examples in the Fibbage 3 engine, under `SubmitLie`. This is called when the state changes to `EnterText` and the bot hasn't written anything yet.
+- "Does this work for anything besides English?"
+> Probably not, but it hasn't been tested.

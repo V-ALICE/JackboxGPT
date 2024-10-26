@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
-    <Company>TJ Horner</Company>
+    <Company>TJ Horner &amp; vAlice</Company>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,11 +18,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Engines\" />
     <Folder Include="Extensions\" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Update=".env">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="ql2_comic_descriptions.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

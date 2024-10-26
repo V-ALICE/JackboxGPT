@@ -27,19 +27,19 @@ namespace JackboxGPT3.Games.Common
         protected abstract string KEY_ROOM { get; }
         protected abstract string KEY_PLAYER_PREFIX { get; }
 
-        public event EventHandler<ClientWelcome> PlayerStateChanged;
-        public event EventHandler<Revision<TRoom>> OnRoomUpdate;
-        public event EventHandler<Revision<TPlayer>> OnSelfUpdate;
+        public event EventHandler<ClientWelcome>? PlayerStateChanged;
+        public event EventHandler<Revision<TRoom>>? OnRoomUpdate;
+        public event EventHandler<Revision<TPlayer>>? OnSelfUpdate;
 
         private readonly IConfigurationProvider _configuration;
         private readonly ILogger _logger;
 
-        private Guid _playerId = Guid.NewGuid();
+        private readonly Guid _playerId = Guid.NewGuid();
         // ReSharper disable once InconsistentNaming
         protected GameState<TRoom, TPlayer> _gameState;
 
-        private WebsocketClient _webSocket;
-        private ManualResetEvent _exitEvent;
+        private WebsocketClient? _webSocket;
+        private ManualResetEvent? _exitEvent;
         private int _msgSeq;
 
         protected const int BASE_INSTANCE = 1;
@@ -120,12 +120,16 @@ namespace JackboxGPT3.Games.Common
             if (op.Key == $"{KEY_PLAYER_PREFIX}{_playerId}" || op.Key == $"{KEY_PLAYER_PREFIX}{_gameState.PlayerId}")
             {
                 var self = JsonConvert.DeserializeObject<TPlayer>(op.Value);
+                if (self == null) return;
+
                 InvokeOnSelfUpdateEvent(this, new Revision<TPlayer>(_gameState.Self, self));
                 _gameState.Self = self;
             }
             else if (op.Key == KEY_ROOM)
             {
                 var room = JsonConvert.DeserializeObject<TRoom>(op.Value);
+                if (room == null) return;
+
                 InvokeOnRoomUpdateEvent(this, new Revision<TRoom>(_gameState.Room, room));
                 _gameState.Room = room;
             }
@@ -174,7 +178,7 @@ namespace JackboxGPT3.Games.Common
             };
 
             var msg = JsonConvert.SerializeObject(clientMessage);
-            _webSocket.Send(msg);
+            _webSocket?.Send(msg);
         }
         
         protected void ClientSend<T>(T req)

@@ -1,4 +1,5 @@
 using JackboxGPT3.Games.Common;
+using JackboxGPT3.Games.Common.Models;
 using JackboxGPT3.Games.SurviveTheInternet.Models;
 using JackboxGPT3.Services;
 using Serilog;
