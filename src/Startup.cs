@@ -14,6 +14,7 @@ using JackboxGPT3.Games.JokeBoat;
 using JackboxGPT3.Games.Quiplash1;
 using JackboxGPT3.Games.Quiplash2;
 using JackboxGPT3.Games.Quiplash3;
+using JackboxGPT3.Games.SurveyScramble;
 using JackboxGPT3.Games.SurviveTheInternet;
 using JackboxGPT3.Games.WordSpud;
 using JackboxGPT3.Services;
@@ -131,6 +132,9 @@ namespace JackboxGPT3
 
             builder.RegisterType<JokeBoatClient>();
             builder.RegisterType<JokeBoatEngine>().Keyed<IJackboxEngine>("jokeboat");
+
+            builder.RegisterType<SurveyScrambleClient>();
+            builder.RegisterType<SurveyScrambleEngine>().Keyed<IJackboxEngine>("bigsurvey");
         }
     }
 }

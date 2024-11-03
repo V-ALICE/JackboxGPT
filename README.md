@@ -8,6 +8,7 @@ This project is a Jackbox client controlled by GPT-3 (note: this is a pre-ChatGP
 - Quiplash XL/2/3
 - Blather 'Round
 - Joke Boat
+- Survey Scramble _(all modes besides Bounce)_
 - Survive the Internet _(currently chooses images/votes randomly)_
 - Word Spud _(currently always votes positively)_
 
