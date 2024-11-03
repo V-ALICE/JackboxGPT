@@ -14,7 +14,8 @@ public enum State
     Gameplay,
     Lobby,
     Logo,
-    MakeSingleChoice
+    MakeSingleChoice,
+    Gameplay_Logo
 }
 
 public enum ChoiceType

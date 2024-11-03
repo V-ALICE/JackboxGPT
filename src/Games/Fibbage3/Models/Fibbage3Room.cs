@@ -23,7 +23,7 @@ namespace JackboxGPT3.Games.Fibbage3.Models
         EndShortie,
         ChooseLike,
         EndGame,
-        Gameplay_Logo // TODO
+        Gameplay_Logo
     }
     // ReSharper restore UnusedMember.Global
 

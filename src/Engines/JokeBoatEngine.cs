@@ -173,7 +173,7 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
 
     private string CleanResultStrict(string input, bool logChanges = false)
     {
-        var clipped = input.ToUpper();
+        var clipped = input;//.ToUpper();
 
         // Characters that often indicate that the answer will be unreasonable to try to use
         var badMarkers = new[] { '(', ')', '/', '[', ']', '{', '}' };
@@ -199,10 +199,10 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
         return clipped;
     }
 
-    protected string CleanResult(string input, string prompt = "", bool logChanges = false)
+    private string CleanResult(string input, string prompt = "", bool logChanges = false)
     {
-        input = input.ToUpper();
-        prompt = prompt.ToUpper();
+        //input = input.ToUpper();
+        //prompt = prompt.ToUpper();
 
         // Don't accept results that are entirely contained in the prompt
         if (prompt.Length > 0 && prompt.Contains(input))
@@ -273,7 +273,7 @@ Q: a brand
 A: McDonalds
 
 Q: a plural noun
-A: Frogs
+A: French bread pizzas
 
 Q: a drink
 A: Milk
@@ -311,7 +311,7 @@ Q: I like my pants like I like my CATS: _______
 A: Rubbing up against my legs
 
 Q: Why are they called LIGHTBULBS... and not _______
-A: Magical orbs
+A: magical orbs
 
 Q: What’s the difference between the majority of people and PIZZAS: _______
 A: People usually aren't quite as cheesy
@@ -376,18 +376,12 @@ The funniest was joke number: ";
             return input.ToUpper() switch
             {
                 "ONE" => 1,
-                "TWO" => 2,
-                "THREE" => 3,
-                "FOUR" => 4,
-                "FIVE" => 5,
-                "SIX" => 6,
-                "SEVEN" => 7,
-                "EIGHT" => 8, // Game should have a max of eight options to choose from (in quiplash 1/2)
+                "TWO" => 2, // Only ever two options
                 _ => throw new FormatException() // Response was something unhandled here
             };
         }
 
-        var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+        var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
         {
             Temperature = 1,
             MaxTokens = 1,
