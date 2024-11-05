@@ -1,13 +1,13 @@
 #nullable enable
-using JackboxGPT3.Games.Common;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.SurveyScramble.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Games.Common;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.SurveyScramble.Models;
+using JackboxGPT.Services;
 using Newtonsoft.Json;
 using Serilog;
 using System;
 
-namespace JackboxGPT3.Games.SurveyScramble;
+namespace JackboxGPT.Games.SurveyScramble;
 
 public class SurveyScrambleClient : PlayerSerializedClient<SurveyScrambleRoom, SurveyScramblePlayer>
 {

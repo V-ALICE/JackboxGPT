@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace JackboxGPT3.Games.Fibbage4.Models
+namespace JackboxGPT.Games.Fibbage4.Models
 {
     public struct SelectRequest<TChoice>
     {

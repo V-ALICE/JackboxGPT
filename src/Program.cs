@@ -1,13 +1,13 @@
 ﻿using CommandLine;
 using dotenv.net;
-using JackboxGPT3.Services;
+using JackboxGPT.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Tomlyn;
 
-namespace JackboxGPT3
+namespace JackboxGPT
 {
     public static class Program
     {

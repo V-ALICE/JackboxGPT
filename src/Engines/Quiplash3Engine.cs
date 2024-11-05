@@ -3,14 +3,14 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
-using JackboxGPT3.Extensions;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.Quiplash3;
-using JackboxGPT3.Games.Quiplash3.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Extensions;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.Quiplash3;
+using JackboxGPT.Games.Quiplash3.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Engines
+namespace JackboxGPT.Engines
 {
     public class Quiplash3Engine : BaseQuiplashEngine<Quiplash3Client>
     {

@@ -2,7 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 
-namespace JackboxGPT3.Games.Quiplash2.Models
+namespace JackboxGPT.Games.Quiplash2.Models
 {
     public struct Quiplash2Player
     {

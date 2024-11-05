@@ -1,14 +1,14 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.WordSpud;
-using JackboxGPT3.Games.WordSpud.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.WordSpud;
+using JackboxGPT.Games.WordSpud.Models;
+using JackboxGPT.Services;
 using Serilog;
 using static JackboxGPT.Services.ICompletionService;
 
-namespace JackboxGPT3.Engines
+namespace JackboxGPT.Engines
 {
     public class WordSpudEngine : BaseJackboxEngine<WordSpudClient>
     {

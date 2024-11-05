@@ -4,7 +4,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace JackboxGPT3.Games.Fibbage4.Models
+namespace JackboxGPT.Games.Fibbage4.Models
 {
     // ReSharper disable UnusedMember.Global
     public enum RoomState

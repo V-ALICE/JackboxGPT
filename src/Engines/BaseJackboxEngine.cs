@@ -1,9 +1,9 @@
-﻿using JackboxGPT3.Games.Common;
-using JackboxGPT3.Services;
+﻿using JackboxGPT.Games.Common;
+using JackboxGPT.Services;
 using Serilog;
 
 
-namespace JackboxGPT3.Engines
+namespace JackboxGPT.Engines
 {
     public abstract class BaseJackboxEngine<TClient> : IJackboxEngine
         where TClient : IJackboxClient

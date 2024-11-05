@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
-using JackboxGPT3.Extensions;
-using JackboxGPT3.Games.Common;
-using JackboxGPT3.Services;
+using JackboxGPT.Extensions;
+using JackboxGPT.Games.Common;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Engines
+namespace JackboxGPT.Engines
 {
     public abstract class BaseQuiplashEngine<TClient> : BaseJackboxEngine<TClient>
         where TClient : IJackboxClient

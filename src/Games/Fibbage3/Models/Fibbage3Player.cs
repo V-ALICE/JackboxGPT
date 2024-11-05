@@ -2,7 +2,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace JackboxGPT3.Games.Fibbage3.Models
+namespace JackboxGPT.Games.Fibbage3.Models
 {
     public struct Fibbage3Player
     {

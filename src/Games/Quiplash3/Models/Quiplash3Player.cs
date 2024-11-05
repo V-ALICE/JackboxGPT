@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace JackboxGPT3.Games.Quiplash3.Models
+namespace JackboxGPT.Games.Quiplash3.Models
 {
     public struct Quiplash3Player
     {

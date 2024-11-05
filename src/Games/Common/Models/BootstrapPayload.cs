@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace JackboxGPT3.Games.Common.Models
+namespace JackboxGPT.Games.Common.Models
 {
     public struct BootstrapPayload
     {

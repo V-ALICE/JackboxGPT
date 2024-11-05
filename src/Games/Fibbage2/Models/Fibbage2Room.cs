@@ -3,7 +3,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace JackboxGPT3.Games.Fibbage2.Models
+namespace JackboxGPT.Games.Fibbage2.Models
 {
     // ReSharper disable UnusedMember.Global
     [JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]

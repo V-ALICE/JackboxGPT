@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using JackboxGPT3.Extensions;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.Fibbage3;
-using JackboxGPT3.Games.Fibbage3.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Extensions;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.Fibbage3;
+using JackboxGPT.Games.Fibbage3.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Engines
+namespace JackboxGPT.Engines
 {
     public class Fibbage3Engine : BaseFibbageEngine<Fibbage3Client>
     {

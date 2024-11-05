@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using JackboxGPT3.Extensions;
-using JackboxGPT3.Games.BlatherRound;
-using JackboxGPT3.Games.BlatherRound.Models;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Extensions;
+using JackboxGPT.Games.BlatherRound;
+using JackboxGPT.Games.BlatherRound.Models;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Engines
+namespace JackboxGPT.Engines
 {
     public class BlatherRoundEngine : BaseJackboxEngine<BlatherRoundClient>
     {

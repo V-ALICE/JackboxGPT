@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace JackboxGPT3.Games.Fibbage3.Models
+namespace JackboxGPT.Games.Fibbage3.Models
 {
     public struct TruthChoice
     {

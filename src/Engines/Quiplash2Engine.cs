@@ -1,14 +1,14 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
-using JackboxGPT3.Games.Common;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.Quiplash2;
-using JackboxGPT3.Games.Quiplash2.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Games.Common;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.Quiplash2;
+using JackboxGPT.Games.Quiplash2.Models;
+using JackboxGPT.Services;
 using Serilog;
-using RoomState = JackboxGPT3.Games.Quiplash2.Models.RoomState;
+using RoomState = JackboxGPT.Games.Quiplash2.Models.RoomState;
 
-namespace JackboxGPT3.Engines
+namespace JackboxGPT.Engines
 {
     public class Quiplash2Engine : BaseQuiplashEngine<Quiplash2Client>
     {

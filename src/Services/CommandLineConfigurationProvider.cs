@@ -1,7 +1,7 @@
 ﻿using CommandLine;
 // ReSharper disable ClassNeverInstantiated.Global
 
-namespace JackboxGPT3.Services
+namespace JackboxGPT.Services
 {
     public class CommandLineConfigurationProvider : DefaultConfigurationProvider
     {

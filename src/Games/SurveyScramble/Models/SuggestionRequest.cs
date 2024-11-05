@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace JackboxGPT3.Games.SurveyScramble.Models
+namespace JackboxGPT.Games.SurveyScramble.Models
 {
     public struct SuggestionRequest
     {

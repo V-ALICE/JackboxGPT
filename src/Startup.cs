@@ -4,25 +4,25 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Autofac;
-using JackboxGPT3.Engines;
-using JackboxGPT3.Games.BlatherRound;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.Fibbage2;
-using JackboxGPT3.Games.Fibbage3;
-using JackboxGPT3.Games.Fibbage4;
-using JackboxGPT3.Games.JokeBoat;
-using JackboxGPT3.Games.Quiplash1;
-using JackboxGPT3.Games.Quiplash2;
-using JackboxGPT3.Games.Quiplash3;
-using JackboxGPT3.Games.SurveyScramble;
-using JackboxGPT3.Games.SurviveTheInternet;
-using JackboxGPT3.Games.WordSpud;
-using JackboxGPT3.Services;
+using JackboxGPT.Engines;
+using JackboxGPT.Games.BlatherRound;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.Fibbage2;
+using JackboxGPT.Games.Fibbage3;
+using JackboxGPT.Games.Fibbage4;
+using JackboxGPT.Games.JokeBoat;
+using JackboxGPT.Games.Quiplash1;
+using JackboxGPT.Games.Quiplash2;
+using JackboxGPT.Games.Quiplash3;
+using JackboxGPT.Games.SurveyScramble;
+using JackboxGPT.Games.SurviveTheInternet;
+using JackboxGPT.Games.WordSpud;
+using JackboxGPT.Services;
 using Newtonsoft.Json;
 using Serilog;
 using Serilog.Events;
 
-namespace JackboxGPT3
+namespace JackboxGPT
 {
     public static class Startup
     {

@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace JackboxGPT3.Games.WordSpud.Models
+namespace JackboxGPT.Games.WordSpud.Models
 {
     public struct WordSpudPlayer
     {

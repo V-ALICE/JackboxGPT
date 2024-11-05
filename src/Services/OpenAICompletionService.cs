@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using OpenAI_API;
 using OpenAI_API.Completions;
 using OpenAI_API.Models;
-using static JackboxGPT3.Services.ICompletionService;
+using static JackboxGPT.Services.ICompletionService;
 
-namespace JackboxGPT3.Services
+namespace JackboxGPT.Services
 {
     // ReSharper disable once InconsistentNaming
     public class OpenAICompletionService : ICompletionService

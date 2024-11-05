@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace JackboxGPT3.Extensions
+namespace JackboxGPT.Extensions
 {
     public static class StringExtensions
     {

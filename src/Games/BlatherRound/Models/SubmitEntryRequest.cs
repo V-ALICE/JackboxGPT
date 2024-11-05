@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace JackboxGPT3.Games.BlatherRound.Models
+namespace JackboxGPT.Games.BlatherRound.Models
 {
     public class SubmitEntryRequest<T>
     {

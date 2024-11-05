@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace JackboxGPT3.Games.Common.Models
+namespace JackboxGPT.Games.Common.Models
 {
     public struct ObjectOperation : IOperation
     {

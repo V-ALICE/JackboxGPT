@@ -4,7 +4,7 @@ using System.Runtime.Serialization;
 using Newtonsoft.Json;
 // ReSharper disable InconsistentNaming
 
-namespace JackboxGPT3.Games.BlatherRound
+namespace JackboxGPT.Games.BlatherRound
 {
     public class Sentence
     {

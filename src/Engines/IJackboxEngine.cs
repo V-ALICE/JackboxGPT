@@ -1,4 +1,4 @@
-﻿namespace JackboxGPT3.Engines
+﻿namespace JackboxGPT.Engines
 {
     public interface IJackboxEngine { }
 }

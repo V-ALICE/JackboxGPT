@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using JackboxGPT3.Games.BlatherRound.Models;
-using JackboxGPT3.Games.Common;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Games.BlatherRound.Models;
+using JackboxGPT.Games.Common;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Services;
 using Newtonsoft.Json;
 using Serilog;
 
-namespace JackboxGPT3.Games.BlatherRound
+namespace JackboxGPT.Games.BlatherRound
 {
     public class BlatherRoundClient : PlayerSerializedClient<BlatherRoundRoom, BlatherRoundPlayer>
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections;
 
-namespace JackboxGPT3.Extensions
+namespace JackboxGPT.Extensions
 {
     public static class CollectionExtensions
     {

@@ -1,5 +1,5 @@
 ﻿using FluentAssertions;
-using JackboxGPT3.Extensions;
+using JackboxGPT.Extensions;
 using NUnit.Framework;
 
 namespace Tests.Extensions

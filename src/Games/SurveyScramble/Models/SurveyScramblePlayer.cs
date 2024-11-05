@@ -6,7 +6,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace JackboxGPT3.Games.SurveyScramble.Models;
+namespace JackboxGPT.Games.SurveyScramble.Models;
 
 public enum Kind
 {

@@ -1,4 +1,4 @@
-﻿namespace JackboxGPT3.Services;
+﻿namespace JackboxGPT.Services;
 
 public class ManagedConfigFile
 {

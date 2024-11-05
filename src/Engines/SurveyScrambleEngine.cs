@@ -1,14 +1,14 @@
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.SurveyScramble;
-using JackboxGPT3.Games.SurveyScramble.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.SurveyScramble;
+using JackboxGPT.Games.SurveyScramble.Models;
+using JackboxGPT.Services;
 using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace JackboxGPT3.Engines;
+namespace JackboxGPT.Engines;
 
 public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
 {

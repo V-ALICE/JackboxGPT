@@ -1,5 +1,5 @@
 ﻿// ReSharper disable InconsistentNaming
-namespace JackboxGPT3.Services
+namespace JackboxGPT.Services
 {
     public interface IConfigurationProvider
     {

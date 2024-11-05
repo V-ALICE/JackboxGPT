@@ -1,15 +1,15 @@
 using System;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using JackboxGPT3.Extensions;
-using JackboxGPT3.Games.Common;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.SurviveTheInternet;
-using JackboxGPT3.Games.SurviveTheInternet.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Extensions;
+using JackboxGPT.Games.Common;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.SurviveTheInternet;
+using JackboxGPT.Games.SurviveTheInternet.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Engines
+namespace JackboxGPT.Engines
 {
     public class SurviveTheInternetEngine : BaseJackboxEngine<SurviveTheInternetClient>
     {

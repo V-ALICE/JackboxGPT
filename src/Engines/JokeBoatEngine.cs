@@ -1,17 +1,17 @@
 using System.Linq;
 using System;
 using System.Collections.Generic;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.JokeBoat;
-using JackboxGPT3.Games.JokeBoat.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.JokeBoat;
+using JackboxGPT.Games.JokeBoat.Models;
+using JackboxGPT.Services;
 using Serilog;
 using System.Threading.Tasks;
-using JackboxGPT3.Extensions;
-using static JackboxGPT3.Services.ICompletionService;
+using JackboxGPT.Extensions;
+using static JackboxGPT.Services.ICompletionService;
 using System.Web;
 
-namespace JackboxGPT3.Engines;
+namespace JackboxGPT.Engines;
 
 public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
 {
