@@ -12,8 +12,8 @@ namespace JackboxGPT3.Engines
     {
         protected override string Tag => "fibbage2";
         
-        public Fibbage2Engine(ICompletionService completionService, ILogger logger, Fibbage2Client client, int instance)
-            : base(completionService, logger, client, instance)
+        public Fibbage2Engine(ICompletionService completionService, ILogger logger, Fibbage2Client client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
@@ -63,7 +63,7 @@ namespace JackboxGPT3.Engines
         private async void SubmitLie()
         {
             var lie = await FormLie(JackboxClient.GameState.Room.Question);
-            JackboxClient.SubmitLie(lie, RetryCount > MAX_SUBMISSION_RETRIES);
+            JackboxClient.SubmitLie(lie, RetryCount > Config.Fibbage.SubmissionRetries);
         }
 
         private async void SubmitTruth(Fibbage2Player self)
@@ -77,7 +77,7 @@ namespace JackboxGPT3.Engines
             var room = JackboxClient.GameState.Room;
 
             LogInfo("Time to choose a category.", prefix: "\n");
-            await Task.Delay(3000);
+            await Task.Delay(Config.Fibbage.CategoryChoiceDelayMs);
 
             var choices = room.CategoryChoices;
             var category = choices.RandomIndex();

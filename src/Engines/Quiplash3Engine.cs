@@ -18,8 +18,8 @@ namespace JackboxGPT3.Engines
 
         private bool _selectedAvatar;
 
-        public Quiplash3Engine(ICompletionService completionService, ILogger logger, Quiplash3Client client, int instance)
-            : base(completionService, logger, client, instance)
+        public Quiplash3Engine(ICompletionService completionService, ILogger logger, Quiplash3Client client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
@@ -125,7 +125,7 @@ Funny Answer:";
             
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
             {
-                Temperature = 0.75,
+                Temperature = Config.Quiplash.GenTemp,
                 MaxTokens = 32,
                 TopP = 1,
                 FrequencyPenalty = 0.2,
@@ -140,6 +140,7 @@ Funny Answer:";
                 LogDebug($"Received unusable ProvideThrip response: {completion.Text.Trim()}");
                 return false;
             },
+            maxTries: Config.Quiplash.MaxRetries,
             defaultResponse: "GPT has failed|to formulate|an answer");
 
             var split = result.Text.Split("|");

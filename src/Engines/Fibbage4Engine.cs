@@ -17,8 +17,8 @@ namespace JackboxGPT3.Engines
         // Fibbage 4 doesn't send the original prompt when it sends lie choices, so this keeps track of it
         private string _previousQuestion; 
 
-        public Fibbage4Engine(ICompletionService completionService, ILogger logger, Fibbage4Client client, int instance)
-            : base(completionService, logger, client, instance)
+        public Fibbage4Engine(ICompletionService completionService, ILogger logger, Fibbage4Client client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.Connect();
@@ -103,7 +103,7 @@ namespace JackboxGPT3.Engines
             _previousQuestion = self.Question;
 
             string lie;
-            if (RetryCount > MAX_SUBMISSION_RETRIES)
+            if (RetryCount > Config.Fibbage.SubmissionRetries)
             {
                 RetryCount = 0;
                 LogInfo("Submitting a default answer because there were too many submission errors.");
@@ -148,7 +148,7 @@ namespace JackboxGPT3.Engines
         private async void ChooseRandomCategory(Fibbage4Player self)
         {
             LogInfo("Time to choose a category.", prefix: "\n");
-            await Task.Delay(3000);
+            await Task.Delay(Config.Fibbage.CategoryChoiceDelayMs);
 
             var choices = self.CategoryChoices;
             var category = choices.RandomIndex();
@@ -177,7 +177,7 @@ A:";
 
             var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
                 {
-                    Temperature = 0.8,
+                    Temperature = Config.Fibbage.GenTemp,
                     MaxTokens = 16,
                     TopP = 1,
                     FrequencyPenalty = 0.2,
@@ -191,6 +191,7 @@ A:";
                     LogDebug($"Received unusable ProvideLie response: {completion.Text.Trim()}");
                     return false;
                 },
+                maxTries: Config.Fibbage.MaxRetries,
                 defaultResponse: "");
 
             if (result.Text.Length == 0)

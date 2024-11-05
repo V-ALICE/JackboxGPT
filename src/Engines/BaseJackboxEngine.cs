@@ -2,6 +2,7 @@
 using JackboxGPT3.Services;
 using Serilog;
 
+
 namespace JackboxGPT3.Engines
 {
     public abstract class BaseJackboxEngine<TClient> : IJackboxEngine
@@ -11,18 +12,28 @@ namespace JackboxGPT3.Engines
         
         protected readonly ICompletionService CompletionService;
         protected readonly TClient JackboxClient;
-        
+
+        protected readonly ManagedConfigFile Config;
+
         private readonly ILogger _logger;
 
         protected const int BASE_INSTANCE = 1;
-        protected readonly int Instance;
+        protected readonly int Instance = BASE_INSTANCE;
 
-        protected BaseJackboxEngine(ICompletionService completionService, ILogger logger, TClient client, int instance = BASE_INSTANCE)
+        protected BaseJackboxEngine(ICompletionService completionService, ILogger logger, TClient client)
+        {
+            CompletionService = completionService;
+            JackboxClient = client;
+            _logger = logger;
+        }
+
+        protected BaseJackboxEngine(ICompletionService completionService, ILogger logger, TClient client, ManagedConfigFile configFile, int instance)
         {
             CompletionService = completionService;
             JackboxClient = client;
             _logger = logger;
             Instance = instance;
+            Config = configFile;
         }
 
         // ReSharper disable UnusedMember.Global

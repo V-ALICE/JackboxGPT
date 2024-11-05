@@ -20,8 +20,8 @@ namespace JackboxGPT3.Engines
         private readonly List<string> _guessesUsedThisRound = new();
         private bool _writing;
         
-        public BlatherRoundEngine(ICompletionService completionService, ILogger logger, BlatherRoundClient client, int instance)
-            : base(completionService, logger, client, instance)
+        public BlatherRoundEngine(ICompletionService completionService, ILogger logger, BlatherRoundClient client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.OnWriteNewSentence += OnWriteNewSentence;
@@ -58,7 +58,7 @@ namespace JackboxGPT3.Engines
             {
                 if (JackboxClient.GameState.Self.State != PlayerState.EnterSingleText) return;
                 JackboxClient.SubmitGuess(guess);
-                await Task.Delay(3000);
+                await Task.Delay(Config.BlatherRound.GuessDelayMs);
             }
         }
 
@@ -78,7 +78,7 @@ namespace JackboxGPT3.Engines
         private async void OnWriteNewSentence(object sender, Sentence sentence)
         {
             if (_writing) return;
-            await Task.Delay(10000);
+            await Task.Delay(Config.BlatherRound.SentenceDelayMs);
 
             _writing = true;
             
@@ -89,7 +89,7 @@ namespace JackboxGPT3.Engines
                 if (sentenceResult == SentenceResult.Skip)
                 {
                     JackboxClient.SubmitSentence(true);
-                    await Task.Delay(1000);
+                    await Task.Delay(Config.BlatherRound.SkipDelayMs);
                 }
                 else if (sentenceResult == SentenceResult.Submit)
                 {
@@ -159,7 +159,7 @@ namespace JackboxGPT3.Engines
                     }
                     
                     JackboxClient.ChooseWord(0, qualifierIndex);
-                    await Task.Delay(100);
+                    await Task.Delay(Config.BlatherRound.WordDelayMs);
                     
                     _guessesUsedThisRound.Add(unusedChoices[results[0].Index]);
                     
@@ -175,7 +175,7 @@ namespace JackboxGPT3.Engines
                     }
                     
                     JackboxClient.ChooseWord(0, qualifierIndex);
-                    await Task.Delay(100);
+                    await Task.Delay(Config.BlatherRound.WordDelayMs);
                     
                     _guessesUsedThisRound.Add(unusedChoices[results.Last().Index]);
                     
@@ -184,7 +184,7 @@ namespace JackboxGPT3.Engines
                 else
                     return SentenceResult.Skip;
 
-                await Task.Delay(100);
+                await Task.Delay(Config.BlatherRound.WordDelayMs);
             }
 
             return SentenceResult.Submit;
@@ -228,7 +228,7 @@ namespace JackboxGPT3.Engines
             var chosenWord = topPerformers[topPerformers.RandomIndex()].Index;
             JackboxClient.ChooseWord(index, chosenWord);
                 
-            await Task.Delay(500);
+            await Task.Delay(Config.BlatherRound.PartDelayMs);
             return true;
         }
 
@@ -274,7 +274,7 @@ Guesses:";
                 prompt,
                 new ICompletionService.CompletionParameters
                 {
-                    Temperature = 0.8,
+                    Temperature = Config.BlatherRound.GenTemp,
                     MaxTokens = 64,
                     TopP = 1,
                     FrequencyPenalty = 0.3,
@@ -283,7 +283,8 @@ Guesses:";
                 },
                 completion => completion.Text.Trim().Split(";").Select(CleanAnswer).Where(answer =>
                     answer != "" && answer.Length <= 40 && !_guessesUsedThisRound.Contains(answer)).ToList(),
-                new List<string>()
+                new List<string>(),
+                maxTries: Config.BlatherRound.MaxRetries
             );
 
             return result;

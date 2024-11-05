@@ -13,8 +13,8 @@ namespace JackboxGPT3.Engines
     public abstract class BaseQuiplashEngine<TClient> : BaseJackboxEngine<TClient>
         where TClient : IJackboxClient
     {
-        protected BaseQuiplashEngine(ICompletionService completionService, ILogger logger, TClient client, int instance)
-            : base(completionService, logger, client, instance)
+        protected BaseQuiplashEngine(ICompletionService completionService, ILogger logger, TClient client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
         }
 
@@ -62,27 +62,28 @@ Prompt: {qlPrompt}
 Funny Answer:";
 
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
-            {
-                Temperature = 0.6,
-                MaxTokens = 16,
-                TopP = 1,
-                FrequencyPenalty = 0.2,
-                PresencePenalty = 0.1,
-                StopSequences = new[] { "\n" }
-            }, 
-            completion =>
-            {
-                var cleanText = CleanResult(completion.Text.Trim());
-                if (cleanText.Length > 0
-                    && cleanText.Length <= maxLength
-                    && !completion.Text.Contains("__")
-                    && !qlPrompt.ToUpper().Contains(cleanText))
-                    return true;
+                {
+                    Temperature = Config.Quiplash.GenTemp,
+                    MaxTokens = 16,
+                    TopP = 1,
+                    FrequencyPenalty = 0.2,
+                    PresencePenalty = 0.1,
+                    StopSequences = new[] { "\n" }
+                },
+                completion =>
+                {
+                    var cleanText = CleanResult(completion.Text.Trim());
+                    if (cleanText.Length > 0
+                        && cleanText.Length <= maxLength
+                        && !completion.Text.Contains("__")
+                        && !qlPrompt.ToUpper().Contains(cleanText))
+                        return true;
 
-                LogDebug($"Received unusable ProvideQuip response: \"{completion.Text.Trim()}\"");
-                return false;
-            },
-            defaultResponse: "");
+                    LogDebug($"Received unusable ProvideQuip response: \"{completion.Text.Trim()}\"");
+                    return false;
+                },
+                maxTries: Config.Quiplash.MaxRetries,
+                defaultResponse: "");
 
             return CleanResult(result.Text.Trim(), true);
         }
@@ -120,29 +121,30 @@ The funniest was prompt number: ";
                     _ => throw new FormatException() // Response was something unhandled here
                 };
             }
-            
-            var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
-            {
-                Temperature = 1,
-                MaxTokens = 1,
-                TopP = 1,
-                StopSequences = new[] { "\n" }
-            }, completion =>
-            {
-                try
-                {
-                    var answer = IntParseExt(completion.Text.Trim());
-                    if (0 < answer && answer <= quips.Count) return true;
-                }
-                catch (FormatException)
-                {
-                    // pass
-                }
 
-                LogDebug($"Received unusable ProvideFavorite response: {completion.Text.Trim()}");
-                return false;
-            },
-            defaultResponse: "");
+            var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+                {
+                    Temperature = Config.Quiplash.VoteTemp,
+                    MaxTokens = 1,
+                    TopP = 1,
+                    StopSequences = new[] { "\n" }
+                }, completion =>
+                {
+                    try
+                    {
+                        var answer = IntParseExt(completion.Text.Trim());
+                        if (0 < answer && answer <= quips.Count) return true;
+                    }
+                    catch (FormatException)
+                    {
+                        // pass
+                    }
+
+                    LogDebug($"Received unusable ProvideFavorite response: {completion.Text.Trim()}");
+                    return false;
+                },
+                maxTries: Config.Quiplash.MaxRetries,
+                defaultResponse: "");
 
             if (result.Text != "")
                 return IntParseExt(result.Text.Trim()) - 1;

@@ -19,11 +19,10 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
 
     // How many topics to generate at the beginning of a game (per AI player)
     // More topics = more GPT tokens used
-    private const int MAX_TOPIC_GEN = 5;
     private int _topicsCount;
 
-    public JokeBoatEngine(ICompletionService completionService, ILogger logger, JokeBoatClient client, int instance)
-        : base(completionService, logger, client, instance)
+    public JokeBoatEngine(ICompletionService completionService, ILogger logger, JokeBoatClient client, ManagedConfigFile configFile, int instance)
+        : base(completionService, logger, client, configFile, instance)
     {
         JackboxClient.OnSelfUpdate += OnSelfUpdate;
         JackboxClient.Connect();
@@ -138,8 +137,8 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
 
     private async void SubmitTopic(JokeBoatPlayer self)
     {
-        if (_topicsCount >= MAX_TOPIC_GEN) return;
-        await Task.Delay(30000 / MAX_TOPIC_GEN); // Don't spam topics
+        if (_topicsCount >= Config.JokeBoat.MaxTopicGenCount) return;
+        await Task.Delay(30000 / Config.JokeBoat.MaxTopicGenCount); // Don't spam topics
 
         var topic = await ProvideTopic(self.Placeholder, self.MaxLength);
         if (topic == "") return; // If topic generation fails 5 times in a row just give up
@@ -283,7 +282,7 @@ A:";
 
         var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
             {
-                Temperature = 0.8,
+                Temperature = Config.JokeBoat.GenTemp,
                 MaxTokens = 16,
                 TopP = 1,
                 FrequencyPenalty = 0.2,
@@ -297,6 +296,7 @@ A:";
                 LogDebug($"Received unusable ProvideTopic response: \"{completion.Text.Trim()}\"");
                 return false;
             },
+            maxTries: Config.JokeBoat.MaxRetries,
             defaultResponse: "");
 
         return CleanResultStrict(result.Text.Trim(), true);
@@ -321,7 +321,7 @@ A:";
 
         var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
             {
-                Temperature = 0.8,
+                Temperature = Config.JokeBoat.GenTemp,
                 MaxTokens = 24,
                 TopP = 1,
                 FrequencyPenalty = 0.2,
@@ -335,6 +335,7 @@ A:";
                 LogDebug($"Received unusable ProvidePunchline response: \"{completion.Text.Trim()}\"");
                 return false;
             },
+            maxTries: Config.JokeBoat.MaxRetries,
             defaultResponse: "");
 
         return CleanResult(result.Text.Trim(), jokePrompt, logChanges: true);
@@ -383,7 +384,7 @@ The funniest was joke number: ";
 
         var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
         {
-            Temperature = 1,
+            Temperature = Config.JokeBoat.VoteTemp,
             MaxTokens = 1,
             TopP = 1,
             StopSequences = new[] { "\n" }
@@ -402,6 +403,7 @@ The funniest was joke number: ";
             LogDebug($"Received unusable ProvideFavorite response: {completion.Text.Trim()}");
             return false;
         },
+        maxTries: Config.JokeBoat.MaxRetries,
         defaultResponse: "");
 
         if (result.Text != "")

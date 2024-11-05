@@ -16,10 +16,8 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
 
     private readonly Random _rand = new();
 
-    // Keeps the engine alive if an unsupported mode is selected
-    private bool _dead;
-
-    private bool _promptShown;
+    private bool _dead; // Keeps the engine alive if an unsupported mode is selected
+    private bool _promptShown; // Prevents the prompt from being spammed in some modes
 
     private SurveyScrambleRoundInfo _promptInfo; // Contains the prompt for the current game
     private readonly HashSet<string> _previouslyGuessed = new(); // Guesses thus far this game (resets every new game)
@@ -32,6 +30,7 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         {PositionType.All, new Queue<string>()}
     };
 
+    // Where on the list a response should be from
     private enum PositionType
     {
         High,
@@ -39,8 +38,8 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         All
     }
 
-    public SurveyScrambleEngine(ICompletionService completionService, ILogger logger, SurveyScrambleClient client, int instance)
-        : base(completionService, logger, client, instance)
+    public SurveyScrambleEngine(ICompletionService completionService, ILogger logger, SurveyScrambleClient client, ManagedConfigFile configFile, int instance)
+        : base(completionService, logger, client, configFile, instance)
     {
         JackboxClient.OnSelfUpdate += OnSelfUpdate;
         JackboxClient.OnRoundInfoReceived += OnRoundInfoReceived;
@@ -103,7 +102,8 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
 
     private async void LockTeam()
     {
-        await Task.Delay(5000);
+        // TODO: team_selection_method = "DEFAULT"  # DEFAULT, SPLIT, LEFT, RIGHT
+        await Task.Delay(Config.SurveyScramble.TeamSelectionLockDelayMs);
         JackboxClient.LockInTeam(); // TODO: make switching an option somehow?
     }
 
@@ -147,7 +147,7 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         }
 
         // Avoids spamming answers when none are working
-        await Task.Delay(2000);
+        await Task.Delay(Config.SurveyScramble.ResponseMinDelayMs);
 
         // Send next response
         var guess = _queuedGuesses[position].Dequeue();
@@ -173,13 +173,13 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
             if (_queuedGuesses[position].Count == 0)
             {
                 LogInfo("GPT failed to come up with any responses, delaying further generation");
-                await Task.Delay(10000);
+                await Task.Delay(Config.SurveyScramble.SpeedGenFailDelayMs);
                 _queuedGuesses[position].Enqueue("DEFAULTRESPONSE"); // This will trigger the server to request again
             }
         }
 
         // Don't let the AI be overpowered 
-        await Task.Delay(_rand.Next(2000, 4000));
+        await Task.Delay(_rand.Next(Config.SurveyScramble.ResponseMinDelayMs, Config.SurveyScramble.SpeedResponseMaxDelayMs));
 
         // Send next response
         var guess = _queuedGuesses[position].Dequeue();
@@ -200,6 +200,7 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         // TODO: make smart? As in attempt to make three in a row rather than just random (would use self.History.Rank)
         const PositionType position = PositionType.All;
 
+        // TODO: use suggestions (only from human players), maybe 25-50% chance to do
         // Generate more responses if needed
         if (_queuedGuesses[position].Count == 0)
         {
@@ -216,7 +217,7 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         }
 
         // Avoids spamming answers when none are working
-        await Task.Delay(2000);
+        await Task.Delay(Config.SurveyScramble.ResponseMinDelayMs);
 
         // Send next response
         var guess = _queuedGuesses[position].Dequeue();
@@ -312,7 +313,7 @@ Responses:";
 
         var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
             {
-                Temperature = 0.8,
+                Temperature = Config.SurveyScramble.GenTemp,
                 MaxTokens = 32,
                 TopP = 1,
                 FrequencyPenalty = 0.2,
@@ -327,7 +328,7 @@ Responses:";
                 LogDebug($"Received unusable ProvideAnswer response: \"{completion.Text.Trim()}\"");
                 return false;
             },
-            maxTries: 4,
+            maxTries: Config.SurveyScramble.MaxRetries,
             defaultResponse: "");
 
         return FilterResults(result.Text.Trim(), maxLength, true);
@@ -366,27 +367,28 @@ I think the most popular of those is number: ";
         }
 
         var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
-        {
-            Temperature = 0.7,
-            MaxTokens = 1,
-            TopP = 1,
-            StopSequences = new[] { "\n" }
-        }, completion =>
-        {
-            try
             {
-                var answer = IntParseExt(completion.Text.Trim());
-                if (0 < answer && answer <= opts.Count) return true;
-            }
-            catch (FormatException)
+                Temperature = Config.SurveyScramble.VoteTemp,
+                MaxTokens = 1,
+                TopP = 1,
+                StopSequences = new[] { "\n" }
+            }, completion =>
             {
-                // pass
-            }
+                try
+                {
+                    var answer = IntParseExt(completion.Text.Trim());
+                    if (0 < answer && answer <= opts.Count) return true;
+                }
+                catch (FormatException)
+                {
+                    // pass
+                }
 
-            LogDebug($"Received unusable ProvideBest response: {completion.Text.Trim()}");
-            return false;
-        },
-        defaultResponse: "");
+                LogDebug($"Received unusable ProvideBest response: {completion.Text.Trim()}");
+                return false;
+            },
+            maxTries: Config.SurveyScramble.MaxRetries,
+            defaultResponse: "");
 
         if (result.Text != "")
             return IntParseExt(result.Text.Trim()) - 1;

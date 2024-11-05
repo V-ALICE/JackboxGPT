@@ -28,7 +28,7 @@ namespace JackboxGPT3
     {
         private static readonly HttpClient _httpClient = new();
 
-        public static async Task Bootstrap(DefaultConfigurationProvider configuration)
+        public static async Task Bootstrap(DefaultConfigurationProvider configuration, ManagedConfigFile configFile)
         {
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Is(Enum.Parse<LogEventLevel>(configuration.LogLevel, true))
@@ -41,17 +41,18 @@ namespace JackboxGPT3
             var instances = new List<Task>();
             for (var i = 1; i <= configuration.WorkerCount; i++)
             {
-                instances.Add(BootstrapInternal(configuration, logger, i));
+                instances.Add(BootstrapInternal(configuration, logger, configFile, i));
             }
             await Task.WhenAll(instances);
         }
 
-        private static async Task BootstrapInternal(IConfigurationProvider configuration, ILogger logger, int instanceNum = 0)
+        private static async Task BootstrapInternal(IConfigurationProvider configuration, ILogger logger, ManagedConfigFile configFile, int instanceNum)
         {
             var builder = new ContainerBuilder();
             builder.RegisterInstance(configuration).As<IConfigurationProvider>();
             builder.RegisterType<OpenAICompletionService>().As<ICompletionService>();
-            builder.RegisterInstance<ILogger>(logger).SingleInstance();
+            builder.RegisterInstance(logger).SingleInstance();
+            builder.RegisterInstance(configFile).SingleInstance();
             builder.Register(instance => instanceNum);
 
             builder.RegisterGameEngines();

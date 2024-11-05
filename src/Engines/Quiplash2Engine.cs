@@ -16,8 +16,8 @@ namespace JackboxGPT3.Engines
 
         private readonly ImageDescriptionProvider _descriptionProvider;
 
-        public Quiplash2Engine(ICompletionService completionService, ILogger logger, Quiplash2Client client, int instance)
-            : base(completionService, logger, client, instance)
+        public Quiplash2Engine(ICompletionService completionService, ILogger logger, Quiplash2Client client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
             _descriptionProvider = new ImageDescriptionProvider("ql2_comic_descriptions.json");
 
@@ -148,7 +148,7 @@ Funny Answer:";
 
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
                 {
-                    Temperature = 0.6,
+                    Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,
                     TopP = 1,
                     FrequencyPenalty = 0.2,
@@ -164,6 +164,7 @@ Funny Answer:";
                     LogDebug($"Received unusable ProvideWordLashQuip response: \"{completion.Text.Trim()}\"");
                     return false;
                 },
+                maxTries: Config.Quiplash.MaxRetries,
                 defaultResponse: "");
 
             return CleanResult(result.Text.Trim(), true);
@@ -199,7 +200,7 @@ Funny Answer:";
 
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
                 {
-                    Temperature = 0.6,
+                    Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,
                     TopP = 1,
                     FrequencyPenalty = 0.2,
@@ -215,6 +216,7 @@ Funny Answer:";
                     LogDebug($"Received unusable ProvideAcroLashQuip response: \"{completion.Text.Trim()}\"");
                     return false;
                 },
+                maxTries: Config.Quiplash.MaxRetries,
                 defaultResponse: "");
 
             return CleanResult(result.Text.Trim(), true);
@@ -238,7 +240,7 @@ Response:";
 
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
                 {
-                    Temperature = 0.6,
+                    Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,
                     TopP = 1,
                     FrequencyPenalty = 0.2,
@@ -254,6 +256,7 @@ Response:";
                     LogDebug($"Received unusable ProvideComicLashQuip response: \"{completion.Text.Trim()}\"");
                     return false;
                 },
+                maxTries: Config.Quiplash.MaxRetries,
                 defaultResponse: "");
 
             return CleanResult(result.Text.Trim().Trim('"'), true);

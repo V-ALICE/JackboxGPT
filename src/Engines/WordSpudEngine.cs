@@ -14,8 +14,8 @@ namespace JackboxGPT3.Engines
     {
         protected override string Tag => "wordspud";
         
-        public WordSpudEngine(ICompletionService completionService, ILogger logger, WordSpudClient client, int instance)
-            : base(completionService, logger, client, instance)
+        public WordSpudEngine(ICompletionService completionService, ILogger logger, WordSpudClient client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
@@ -52,7 +52,7 @@ namespace JackboxGPT3.Engines
             if (JackboxClient.GameState.Self.State == RoomState.GameplayEnter) return;
             LogVerbose("Voting.");
             
-            await Task.Delay(1000);
+            await Task.Delay(Config.WordSpud.VoteDelayMs);
             JackboxClient.Vote(1);
         }
 
@@ -72,22 +72,6 @@ namespace JackboxGPT3.Engines
             LogVerbose($"GPT-3 Prompt: {prompt}");
 
             var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
-<<<<<<< HEAD
-            {
-                Temperature = 0.8,
-                MaxTokens = 16,
-                TopP = 1,
-                FrequencyPenalty = 0.3,
-                PresencePenalty = 0.3,
-                StopSequences = new[] { "\n" }
-            },
-            completion =>
-            {
-                if (completion.Text.Trim() != "" && completion.Text.Length <= 32) return true;
-                LogDebug($"Received unusable ProvideSpud response: {completion.Text.Trim()}");
-                return false;
-            },
-=======
                 {
                     Temperature = Config.WordSpud.GenTemp,
                     MaxTokens = 16,
@@ -103,12 +87,12 @@ namespace JackboxGPT3.Engines
                     text = new string(text.Where(char.IsLetter).ToArray());
 
                     if (text != "" && text.Length <= 32) return true;
+
                     LogDebug($"Received unusable ProvideSpud response: {completion.Text.Trim()}");
                     return false;
                 },
                 maxTries: Config.WordSpud.MaxRetries,
->>>>>>> b107bff (s)
-            defaultResponse: "no response");
+                defaultResponse: "no response");
 
             return new string(result.Text.TrimEnd().Where(char.IsLetter).ToArray());
         }
