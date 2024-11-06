@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using JackboxGPT.Extensions;
 
 namespace JackboxGPT.Engines;
 
@@ -38,9 +39,39 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         All
     }
 
+    // How to split up AI for team modes
+    private enum TeamSelectionMethod
+    {
+        Default,
+        Split,
+        Left,
+        Right
+    }
+    private readonly TeamSelectionMethod _teamSelectionMethod;
+
     public SurveyScrambleEngine(ICompletionService completionService, ILogger logger, SurveyScrambleClient client, ManagedConfigFile configFile, int instance)
         : base(completionService, logger, client, configFile, instance)
     {
+        switch (Config.SurveyScramble.TeamSelectionMethod)
+        {
+            case "DEFAULT":
+                _teamSelectionMethod = TeamSelectionMethod.Default;
+                break;
+            case "SPLIT":
+                _teamSelectionMethod = TeamSelectionMethod.Split;
+                break;
+            case "LEFT":
+                _teamSelectionMethod = TeamSelectionMethod.Left;
+                break;
+            case "RIGHT":
+                _teamSelectionMethod = TeamSelectionMethod.Right;
+                break;
+            default:
+                LogWarning($"{Config.SurveyScramble.TeamSelectionMethod} is not a valid value for `survey_scramble.team_selection_method`", true);
+                _teamSelectionMethod = TeamSelectionMethod.Default;
+                break;
+        }
+
         JackboxClient.OnSelfUpdate += OnSelfUpdate;
         JackboxClient.OnRoundInfoReceived += OnRoundInfoReceived;
         JackboxClient.Connect();
@@ -85,7 +116,7 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
                     HighLowChooseMostPopular(self);
                 break;
             case Kind.TeamChoice:
-                LockTeam();
+                LockTeam(self);
                 break;
         }
     }
@@ -100,11 +131,25 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         }
     }
 
-    private async void LockTeam()
+    private async void LockTeam(SurveyScramblePlayer self)
     {
-        // TODO: team_selection_method = "DEFAULT"  # DEFAULT, SPLIT, LEFT, RIGHT
-        await Task.Delay(Config.SurveyScramble.TeamSelectionLockDelayMs);
-        JackboxClient.LockInTeam(); // TODO: make switching an option somehow?
+        await Task.Delay(Config.SurveyScramble.TeamSelectionDelayMs);
+        switch (_teamSelectionMethod)
+        {
+            case TeamSelectionMethod.Default: // Do nothing
+                break;
+            case TeamSelectionMethod.Split:
+                JackboxClient.ChooseTeam(self.CurrentTeamName, Instance % 2 == 0);
+                break;
+            case TeamSelectionMethod.Left:
+                JackboxClient.ChooseTeam(self.CurrentTeamName, true);
+                break;
+            case TeamSelectionMethod.Right:
+                JackboxClient.ChooseTeam(self.CurrentTeamName, false);
+                break;
+        }
+        await Task.Delay(Config.SurveyScramble.TeamLockDelayMs);
+        JackboxClient.LockInTeam();
     }
 
     private void HandleBounceMode(SurveyScramblePlayer self)
@@ -200,7 +245,21 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         // TODO: make smart? As in attempt to make three in a row rather than just random (would use self.History.Rank)
         const PositionType position = PositionType.All;
 
-        // TODO: use suggestions (only from human players), maybe 25-50% chance to do
+        // Use suggestions (only from human players) sometimes
+        var suggestions = self.Suggestions.Where(suggestion => !_previouslyGuessed.Contains(suggestion.Text)).ToList();
+        if (suggestions.Count > 0 && Config.SurveyScramble.TeamUseSuggestionChance > _rand.NextDouble())
+        {
+            // Avoids spamming answers when none are working
+            await Task.Delay(Config.SurveyScramble.ResponseMinDelayMs);
+
+            // Send next response
+            var suggestion = suggestions[suggestions.RandomIndex()].Text;
+            LogInfo($"Submitting suggested response \"{suggestion}\"");
+            JackboxClient.GuessSuggestion(suggestion);
+            _previouslyGuessed.Add(suggestion);
+            return;
+        }
+
         // Generate more responses if needed
         if (_queuedGuesses[position].Count == 0)
         {

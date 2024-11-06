@@ -112,11 +112,15 @@ public class ManagedConfigFile
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
         public float VoteTemp { get; set; }
-
-        public int TeamSelectionLockDelayMs { get; set; }
+        
         public int ResponseMinDelayMs { get; set; }
         public int SpeedResponseMaxDelayMs { get; set; }
         public int SpeedGenFailDelayMs { get; set; }
+
+        public int TeamSelectionDelayMs { get; set; }
+        public int TeamLockDelayMs { get; set; }
+        public string TeamSelectionMethod { get; set; } // DEFAULT, SPLIT, LEFT, RIGHT
+        public double TeamUseSuggestionChance { get; set; }
 
         public SurveyScrambleBlock()
         {
@@ -124,10 +128,14 @@ public class ManagedConfigFile
             GenTemp = 0.8f;
             VoteTemp = 0.7f;
 
-            TeamSelectionLockDelayMs = 5000;
             ResponseMinDelayMs = 2000;
             SpeedResponseMaxDelayMs = 4000;
             SpeedGenFailDelayMs = 10000;
+
+            TeamSelectionDelayMs = 4000;
+            TeamLockDelayMs = 1000;
+            TeamSelectionMethod = "DEFAULT";
+            TeamUseSuggestionChance = 0.33;
         }
     }
 

@@ -34,10 +34,13 @@ vote_temp = 0.8
 max_retries = 4
 gen_temp = 0.8
 vote_temp = 0.7
-team_selection_lock_delay_ms = 5000
 response_min_delay_ms = 2000
 speed_response_max_delay_ms = 4000
 speed_gen_fail_delay_ms = 10000
+team_selection_delay_ms = 1000
+team_lock_delay_ms = 3000
+team_selection_method = "DEFAULT"  # DEFAULT, SPLIT, LEFT, RIGHT
+team_use_suggestion_chance = 0.33
 
 [survive_the_internet]
 max_retries = 5

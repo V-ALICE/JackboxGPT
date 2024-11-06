@@ -40,6 +40,15 @@ public class SurveyScrambleClient : PlayerSerializedClient<SurveyScrambleRoom, S
         ClientUpdate(req, KEY_GUESS_OBJ);
     }
 
+    public void ChooseTeam(string currentTeam, bool joinLeftTeam)
+    {
+        var desiredTeam = joinLeftTeam ? "FirstTeam" : "SecondTeam";
+        if (currentTeam == desiredTeam) return;
+
+        var req = new SetTeamRequest(desiredTeam);
+        ClientUpdate(req, KEY_VOTE);
+    }
+
     public void LockInTeam()
     {
         var req = new LockInRequest();
