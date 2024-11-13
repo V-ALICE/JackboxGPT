@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace JackboxGPT3.Services
+namespace JackboxGPT.Services
 {
     public interface ICompletionService
     {

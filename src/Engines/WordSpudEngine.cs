@@ -1,20 +1,21 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.WordSpud;
-using JackboxGPT3.Games.WordSpud.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.WordSpud;
+using JackboxGPT.Games.WordSpud.Models;
+using JackboxGPT.Services;
 using Serilog;
-using static JackboxGPT3.Services.ICompletionService;
+using static JackboxGPT.Services.ICompletionService;
 
-namespace JackboxGPT3.Engines
+namespace JackboxGPT.Engines
 {
     public class WordSpudEngine : BaseJackboxEngine<WordSpudClient>
     {
         protected override string Tag => "wordspud";
         
-        public WordSpudEngine(ICompletionService completionService, ILogger logger, WordSpudClient client, int instance)
-            : base(completionService, logger, client, instance)
+        public WordSpudEngine(ICompletionService completionService, ILogger logger, WordSpudClient client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
@@ -51,7 +52,7 @@ namespace JackboxGPT3.Engines
             if (JackboxClient.GameState.Self.State == RoomState.GameplayEnter) return;
             LogVerbose("Voting.");
             
-            await Task.Delay(1000);
+            await Task.Delay(Config.WordSpud.VoteDelayMs);
             JackboxClient.Vote(1);
         }
 
@@ -59,35 +60,41 @@ namespace JackboxGPT3.Engines
         {
             var prompt = $@"The game Word Spud is played by continuing a word or phrase with a funny related word or phrase. For example:
 
-- jellyfish
-- deal with it
-- fishsticks
-- beat saber
-- tailor-made
-- real life
-- how do you do
-- {currentWord}";
+- jelly|fish
+- deal| with it
+- fish|sticks
+- beat| saber
+- tailor| made
+- real| life
+- how| do you do
+- {currentWord}|";
 
             LogVerbose($"GPT-3 Prompt: {prompt}");
 
             var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
-            {
-                Temperature = 0.8,
-                MaxTokens = 16,
-                TopP = 1,
-                FrequencyPenalty = 0.3,
-                PresencePenalty = 0.3,
-                StopSequences = new[] { "\n" }
-            },
-            completion =>
-            {
-                if (completion.Text.Trim() != "" && completion.Text.Length <= 32) return true;
-                LogDebug($"Received unusable ProvideSpud response: {completion.Text.Trim()}");
-                return false;
-            },
-            defaultResponse: "no response");
+                {
+                    Temperature = Config.WordSpud.GenTemp,
+                    MaxTokens = 16,
+                    TopP = 1,
+                    FrequencyPenalty = 0.3,
+                    PresencePenalty = 0.3,
+                    StopSequences = new[] { "\n" }
+                },
+                completion =>
+                {
+                    var text = completion.Text.Trim();
+                    if (string.Equals(text, currentWord, StringComparison.CurrentCultureIgnoreCase)) return false;
+                    text = new string(text.Where(char.IsLetter).ToArray());
 
-            return result.Text.TrimEnd();
+                    if (text != "" && text.Length <= 32) return true;
+
+                    LogDebug($"Received unusable ProvideSpud response: {completion.Text.Trim()}");
+                    return false;
+                },
+                maxTries: Config.WordSpud.MaxRetries,
+                defaultResponse: "no response");
+
+            return new string(result.Text.TrimEnd().Where(char.IsLetter).ToArray());
         }
     }
 }

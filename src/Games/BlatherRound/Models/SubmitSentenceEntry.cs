@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace JackboxGPT3.Games.BlatherRound.Models
+namespace JackboxGPT.Games.BlatherRound.Models
 {
     public struct SubmitSentenceEntry
     {

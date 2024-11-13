@@ -3,7 +3,7 @@ using System.Linq;
 using System.Web;
 using Newtonsoft.Json;
 
-namespace JackboxGPT3.Extensions
+namespace JackboxGPT.Extensions
 {
     public static class QueryStringExtensions
     {

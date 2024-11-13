@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace JackboxGPT3.Games.JokeBoat.Models;
+namespace JackboxGPT.Games.JokeBoat.Models;
 
 public enum State
 {
@@ -14,7 +14,8 @@ public enum State
     Gameplay,
     Lobby,
     Logo,
-    MakeSingleChoice
+    MakeSingleChoice,
+    Gameplay_Logo
 }
 
 public enum ChoiceType

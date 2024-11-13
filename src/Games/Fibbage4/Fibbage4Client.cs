@@ -1,11 +1,9 @@
-﻿using System;
-using JackboxGPT3.Games.Common;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.Fibbage4.Models;
-using JackboxGPT3.Services;
+﻿using JackboxGPT.Games.Common;
+using JackboxGPT.Games.Fibbage4.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Games.Fibbage4
+namespace JackboxGPT.Games.Fibbage4
 {
     public class Fibbage4Client : PlayerSerializedClient<Fibbage4Room, Fibbage4Player>
     {
@@ -13,8 +11,7 @@ namespace JackboxGPT3.Games.Fibbage4
         private const string KEY_ENTRYBOX1_SUBMIT = "entertext:entry1";
         private const string KEY_ENTRYBOX2_SUBMIT = "entertext:entry2";
         private const string KEY_ENTRYBOX_ACTION = "entertext:actions";
-
-
+        
         public Fibbage4Client(IConfigurationProvider configuration, ILogger logger, int instance) : base(configuration, logger, instance) { }
 
         public void ChooseCategory(int index)

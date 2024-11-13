@@ -1,4 +1,4 @@
-namespace JackboxGPT3.Games.Common.Models
+namespace JackboxGPT.Games.Common.Models
 {
     public interface IOperation
     {

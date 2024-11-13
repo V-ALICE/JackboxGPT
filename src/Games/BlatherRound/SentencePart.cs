@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace JackboxGPT3.Games.BlatherRound
+namespace JackboxGPT.Games.BlatherRound
 {
     public class SentencePart
     {

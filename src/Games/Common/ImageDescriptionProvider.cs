@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 
-namespace JackboxGPT3.Games.Common
+namespace JackboxGPT.Games.Common
 {
     public class ImageDescriptionProvider
     {

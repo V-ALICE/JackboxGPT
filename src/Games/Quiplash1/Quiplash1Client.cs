@@ -1,9 +1,9 @@
-﻿using JackboxGPT3.Games.Common;
-using JackboxGPT3.Games.Quiplash1.Models;
-using JackboxGPT3.Services;
+﻿using JackboxGPT.Games.Common;
+using JackboxGPT.Games.Quiplash1.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Games.Quiplash1
+namespace JackboxGPT.Games.Quiplash1
 {
     public class Quiplash1Client : BcSerializedClient<Quiplash1Room, Quiplash1Player>
     {

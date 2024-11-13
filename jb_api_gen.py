@@ -187,12 +187,12 @@ def _output_template_files(game_name: str, src_folder_path: str, using_bc: bool)
     if not client.exists():
         with open(client, "w") as file:
             file.write(
-                f"""using JackboxGPT3.Games.Common;
-using JackboxGPT3.Games.{game_name}.Models;
-using JackboxGPT3.Services;
+                f"""using JackboxGPT.Games.Common;
+using JackboxGPT.Games.{game_name}.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Games.{game_name};
+namespace JackboxGPT.Games.{game_name};
 
 public class {game_name}Client : {client_class}<{game_name}Room, {game_name}Player>
 {{
@@ -210,13 +210,13 @@ public class {game_name}Client : {client_class}<{game_name}Room, {game_name}Play
     if not engine.exists():
         with open(engine, "w") as file:
             file.write(
-                f"""using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.{game_name};
-using JackboxGPT3.Games.{game_name}.Models;
-using JackboxGPT3.Services;
+                f"""using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.{game_name};
+using JackboxGPT.Games.{game_name}.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Engines;
+namespace JackboxGPT.Engines;
 
 public class {game_name}Engine : BaseJackboxEngine<{game_name}Client>
 {{
@@ -304,11 +304,11 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace JackboxGPT3.Games.{base_name}.Models;
+namespace JackboxGPT.Games.{base_name}.Models;
 """
     empty_header = f"""// This file was generated with jb_api_gen.py
 
-namespace JackboxGPT3.Games.{base_name}.Models;
+namespace JackboxGPT.Games.{base_name}.Models;
 
 public struct {class_name}
 {{
@@ -493,7 +493,7 @@ if __name__ == "__main__":
     # Make sure script is run in the expected location
     src_dir = Path(__file__).resolve().parent / "src"
     if not (src_dir / "Engines").is_dir():
-        print("ERROR: this script is intended to be run inside the JackboxGPT3 repo folder")
+        print("ERROR: this script is intended to be run inside the JackboxGPT repo folder")
         exit(1)
 
     # Fetch all the input data

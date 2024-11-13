@@ -1,9 +1,9 @@
-﻿using JackboxGPT3.Games.Common;
-using JackboxGPT3.Games.Fibbage2.Models;
-using JackboxGPT3.Services;
+﻿using JackboxGPT.Games.Common;
+using JackboxGPT.Games.Fibbage2.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Games.Fibbage2
+namespace JackboxGPT.Games.Fibbage2
 {
     public class Fibbage2Client : BcSerializedClient<Fibbage2Room, Fibbage2Player>
     {

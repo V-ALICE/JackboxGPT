@@ -1,10 +1,10 @@
-﻿using JackboxGPT3.Games.Common;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.Fibbage3.Models;
-using JackboxGPT3.Services;
+﻿using JackboxGPT.Games.Common;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.Fibbage3.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Games.Fibbage3
+namespace JackboxGPT.Games.Fibbage3
 {
     public class Fibbage3Client : BcSerializedClient<Fibbage3Room, Fibbage3Player>
     {

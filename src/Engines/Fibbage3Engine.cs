@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using JackboxGPT3.Extensions;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.Fibbage3;
-using JackboxGPT3.Games.Fibbage3.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Extensions;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.Fibbage3;
+using JackboxGPT.Games.Fibbage3.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Engines
+namespace JackboxGPT.Engines
 {
     public class Fibbage3Engine : BaseFibbageEngine<Fibbage3Client>
     {
@@ -20,8 +20,8 @@ namespace JackboxGPT3.Engines
         // Fibbage 3 sends suggestions in a follow up which messes up the usual logic
         private List<string> _suggestionsRef;
 
-        public Fibbage3Engine(ICompletionService completionService, ILogger logger, Fibbage3Client client, int instance)
-            : base(completionService, logger, client, instance)
+        public Fibbage3Engine(ICompletionService completionService, ILogger logger, Fibbage3Client client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
@@ -40,7 +40,7 @@ namespace JackboxGPT3.Engines
                     {
                         LogInfo("The submitted lie was too close to the truth. Generating a new lie...");
                         RetryCount += 1;
-                        if (RetryCount > MAX_SUBMISSION_RETRIES)
+                        if (RetryCount > Config.Fibbage.SubmissionRetries)
                         {
                             // Fibbage 3 gives everyone the same suggestions by default, this requests unique ones so that the AI overlaps less
                             JackboxClient.RequestSuggestions();
@@ -68,7 +68,7 @@ namespace JackboxGPT3.Engines
             {
                 // Wait for suggestions if needed, since they need to be requested
                 _suggestionsRef = self.SuggestionChoices;
-                if (RetryCount > MAX_SUBMISSION_RETRIES && _suggestionsRef.Count == 0)
+                if (RetryCount > Config.Fibbage.SubmissionRetries && _suggestionsRef.Count == 0)
                     return;
 
                 if (self.DoubleInput)
@@ -120,7 +120,7 @@ namespace JackboxGPT3.Engines
             var room = JackboxClient.GameState.Room;
 
             LogInfo("Time to choose a category.", prefix: "\n");
-            await Task.Delay(3000);
+            await Task.Delay(Config.Fibbage.CategoryChoiceDelayMs);
 
             var choices = room.CategoryChoices;
             var category = choices.RandomIndex();

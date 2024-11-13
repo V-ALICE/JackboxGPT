@@ -3,7 +3,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace JackboxGPT3.Games.Quiplash2.Models
+namespace JackboxGPT.Games.Quiplash2.Models
 {
     public enum RoomState
     {

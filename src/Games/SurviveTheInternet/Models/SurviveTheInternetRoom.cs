@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace JackboxGPT3.Games.SurviveTheInternet.Models
+namespace JackboxGPT.Games.SurviveTheInternet.Models
 {
     public struct SurviveTheInternetRoom
     {

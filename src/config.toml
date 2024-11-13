@@ -1,0 +1,55 @@
+# Changing these settings may cause things to work unexpectedly. Make sure you're aware of what you're changing!
+
+[general]
+name = "GPT"
+logging_level = "information"  # verbose, debug, information, warning, error, fatal
+engine = "davinci-002"
+
+[blather_round]
+max_retries = 5
+gen_temp = 0.8
+guess_delay_min_ms = 2000
+guess_delay_max_ms = 4000
+sentence_delay_ms = 10000
+skip_delay_ms = 1000
+word_delay_ms = 100
+part_delay_ms = 500
+
+[fibbage]
+max_retries = 5
+gen_temp = 0.8
+vote_temp = 0.8
+submission_retries = 2
+category_choice_delay_ms = 3000
+
+[joke_boat]
+max_retries = 5
+gen_temp = 0.8
+vote_temp = 0.8
+max_topic_gen_count = 5
+
+[quiplash]
+max_retries = 5
+gen_temp = 0.7
+vote_temp = 0.8
+
+[survey_scramble]
+max_retries = 4
+gen_temp = 0.8
+vote_temp = 0.7
+response_min_delay_ms = 2000
+speed_response_max_delay_ms = 4000
+speed_gen_fail_delay_ms = 10000
+team_selection_delay_ms = 1000
+team_lock_delay_ms = 3000
+team_selection_method = "DEFAULT"  # DEFAULT, SPLIT, LEFT, RIGHT
+team_use_suggestion_chance = 0.33
+
+[survive_the_internet]
+max_retries = 5
+gen_temp = 0.7
+
+[word_spud]
+max_retries = 5
+gen_temp = 0.8
+vote_delay_ms = 1000

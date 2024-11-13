@@ -1,9 +1,9 @@
 using System;
-using JackboxGPT3.Games.Common.Models;
+using JackboxGPT.Games.Common.Models;
 // ReSharper disable UnusedMemberInSuper.Global
 // ReSharper disable EventNeverSubscribedTo.Global
 
-namespace JackboxGPT3.Games.Common
+namespace JackboxGPT.Games.Common
 {
     public interface IJackboxClient
     {

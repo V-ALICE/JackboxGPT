@@ -1,10 +1,10 @@
-using JackboxGPT3.Games.Common;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.JokeBoat.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Games.Common;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.JokeBoat.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Games.JokeBoat;
+namespace JackboxGPT.Games.JokeBoat;
 
 public class JokeBoatClient : BcSerializedClient<JokeBoatRoom, JokeBoatPlayer>
 {

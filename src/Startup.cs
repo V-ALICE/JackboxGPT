@@ -4,30 +4,31 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Autofac;
-using JackboxGPT3.Engines;
-using JackboxGPT3.Games.BlatherRound;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.Fibbage2;
-using JackboxGPT3.Games.Fibbage3;
-using JackboxGPT3.Games.Fibbage4;
-using JackboxGPT3.Games.JokeBoat;
-using JackboxGPT3.Games.Quiplash1;
-using JackboxGPT3.Games.Quiplash2;
-using JackboxGPT3.Games.Quiplash3;
-using JackboxGPT3.Games.SurviveTheInternet;
-using JackboxGPT3.Games.WordSpud;
-using JackboxGPT3.Services;
+using JackboxGPT.Engines;
+using JackboxGPT.Games.BlatherRound;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.Fibbage2;
+using JackboxGPT.Games.Fibbage3;
+using JackboxGPT.Games.Fibbage4;
+using JackboxGPT.Games.JokeBoat;
+using JackboxGPT.Games.Quiplash1;
+using JackboxGPT.Games.Quiplash2;
+using JackboxGPT.Games.Quiplash3;
+using JackboxGPT.Games.SurveyScramble;
+using JackboxGPT.Games.SurviveTheInternet;
+using JackboxGPT.Games.WordSpud;
+using JackboxGPT.Services;
 using Newtonsoft.Json;
 using Serilog;
 using Serilog.Events;
 
-namespace JackboxGPT3
+namespace JackboxGPT
 {
     public static class Startup
     {
         private static readonly HttpClient _httpClient = new();
 
-        public static async Task Bootstrap(DefaultConfigurationProvider configuration)
+        public static async Task Bootstrap(DefaultConfigurationProvider configuration, ManagedConfigFile configFile)
         {
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Is(Enum.Parse<LogEventLevel>(configuration.LogLevel, true))
@@ -40,17 +41,18 @@ namespace JackboxGPT3
             var instances = new List<Task>();
             for (var i = 1; i <= configuration.WorkerCount; i++)
             {
-                instances.Add(BootstrapInternal(configuration, logger, i));
+                instances.Add(BootstrapInternal(configuration, logger, configFile, i));
             }
             await Task.WhenAll(instances);
         }
 
-        private static async Task BootstrapInternal(IConfigurationProvider configuration, ILogger logger, int instanceNum = 0)
+        private static async Task BootstrapInternal(IConfigurationProvider configuration, ILogger logger, ManagedConfigFile configFile, int instanceNum)
         {
             var builder = new ContainerBuilder();
             builder.RegisterInstance(configuration).As<IConfigurationProvider>();
             builder.RegisterType<OpenAICompletionService>().As<ICompletionService>();
-            builder.RegisterInstance<ILogger>(logger).SingleInstance();
+            builder.RegisterInstance(logger).SingleInstance();
+            builder.RegisterInstance(configFile).SingleInstance();
             builder.Register(instance => instanceNum);
 
             builder.RegisterGameEngines();
@@ -131,6 +133,9 @@ namespace JackboxGPT3
 
             builder.RegisterType<JokeBoatClient>();
             builder.RegisterType<JokeBoatEngine>().Keyed<IJackboxEngine>("jokeboat");
+
+            builder.RegisterType<SurveyScrambleClient>();
+            builder.RegisterType<SurveyScrambleEngine>().Keyed<IJackboxEngine>("bigsurvey");
         }
     }
 }

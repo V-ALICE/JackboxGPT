@@ -1,7 +1,7 @@
-using JackboxGPT3.Services;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Games.Common
+namespace JackboxGPT.Games.Common
 {
     /// <summary>
     /// A Jackbox client for games which use the "bc:" serialization format. It's

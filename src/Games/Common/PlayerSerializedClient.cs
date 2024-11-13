@@ -1,7 +1,7 @@
-using JackboxGPT3.Services;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Games.Common
+namespace JackboxGPT.Games.Common
 {
     public abstract class PlayerSerializedClient<TRoom, TPlayer> : BaseJackboxClient<TRoom, TPlayer>
     {

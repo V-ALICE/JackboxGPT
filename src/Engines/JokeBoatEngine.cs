@@ -1,17 +1,17 @@
 using System.Linq;
 using System;
 using System.Collections.Generic;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.JokeBoat;
-using JackboxGPT3.Games.JokeBoat.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.JokeBoat;
+using JackboxGPT.Games.JokeBoat.Models;
+using JackboxGPT.Services;
 using Serilog;
 using System.Threading.Tasks;
-using JackboxGPT3.Extensions;
-using static JackboxGPT3.Services.ICompletionService;
+using JackboxGPT.Extensions;
+using static JackboxGPT.Services.ICompletionService;
 using System.Web;
 
-namespace JackboxGPT3.Engines;
+namespace JackboxGPT.Engines;
 
 public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
 {
@@ -19,11 +19,10 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
 
     // How many topics to generate at the beginning of a game (per AI player)
     // More topics = more GPT tokens used
-    private const int MAX_TOPIC_GEN = 5;
     private int _topicsCount;
 
-    public JokeBoatEngine(ICompletionService completionService, ILogger logger, JokeBoatClient client, int instance)
-        : base(completionService, logger, client, instance)
+    public JokeBoatEngine(ICompletionService completionService, ILogger logger, JokeBoatClient client, ManagedConfigFile configFile, int instance)
+        : base(completionService, logger, client, configFile, instance)
     {
         JackboxClient.OnSelfUpdate += OnSelfUpdate;
         JackboxClient.Connect();
@@ -138,8 +137,8 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
 
     private async void SubmitTopic(JokeBoatPlayer self)
     {
-        if (_topicsCount >= MAX_TOPIC_GEN) return;
-        await Task.Delay(30000 / MAX_TOPIC_GEN); // Don't spam topics
+        if (_topicsCount >= Config.JokeBoat.MaxTopicGenCount) return;
+        await Task.Delay(30000 / Config.JokeBoat.MaxTopicGenCount); // Don't spam topics
 
         var topic = await ProvideTopic(self.Placeholder, self.MaxLength);
         if (topic == "") return; // If topic generation fails 5 times in a row just give up
@@ -173,7 +172,7 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
 
     private string CleanResultStrict(string input, bool logChanges = false)
     {
-        var clipped = input.ToUpper();
+        var clipped = input;//.ToUpper();
 
         // Characters that often indicate that the answer will be unreasonable to try to use
         var badMarkers = new[] { '(', ')', '/', '[', ']', '{', '}' };
@@ -199,10 +198,10 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
         return clipped;
     }
 
-    protected string CleanResult(string input, string prompt = "", bool logChanges = false)
+    private string CleanResult(string input, string prompt = "", bool logChanges = false)
     {
-        input = input.ToUpper();
-        prompt = prompt.ToUpper();
+        //input = input.ToUpper();
+        //prompt = prompt.ToUpper();
 
         // Don't accept results that are entirely contained in the prompt
         if (prompt.Length > 0 && prompt.Contains(input))
@@ -273,7 +272,7 @@ Q: a brand
 A: McDonalds
 
 Q: a plural noun
-A: Frogs
+A: French bread pizzas
 
 Q: a drink
 A: Milk
@@ -283,7 +282,7 @@ A:";
 
         var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
             {
-                Temperature = 0.8,
+                Temperature = Config.JokeBoat.GenTemp,
                 MaxTokens = 16,
                 TopP = 1,
                 FrequencyPenalty = 0.2,
@@ -297,6 +296,7 @@ A:";
                 LogDebug($"Received unusable ProvideTopic response: \"{completion.Text.Trim()}\"");
                 return false;
             },
+            maxTries: Config.JokeBoat.MaxRetries,
             defaultResponse: "");
 
         return CleanResultStrict(result.Text.Trim(), true);
@@ -311,7 +311,7 @@ Q: I like my pants like I like my CATS: _______
 A: Rubbing up against my legs
 
 Q: Why are they called LIGHTBULBS... and not _______
-A: Magical orbs
+A: magical orbs
 
 Q: What’s the difference between the majority of people and PIZZAS: _______
 A: People usually aren't quite as cheesy
@@ -321,7 +321,7 @@ A:";
 
         var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
             {
-                Temperature = 0.8,
+                Temperature = Config.JokeBoat.GenTemp,
                 MaxTokens = 24,
                 TopP = 1,
                 FrequencyPenalty = 0.2,
@@ -335,6 +335,7 @@ A:";
                 LogDebug($"Received unusable ProvidePunchline response: \"{completion.Text.Trim()}\"");
                 return false;
             },
+            maxTries: Config.JokeBoat.MaxRetries,
             defaultResponse: "");
 
         return CleanResult(result.Text.Trim(), jokePrompt, logChanges: true);
@@ -376,20 +377,14 @@ The funniest was joke number: ";
             return input.ToUpper() switch
             {
                 "ONE" => 1,
-                "TWO" => 2,
-                "THREE" => 3,
-                "FOUR" => 4,
-                "FIVE" => 5,
-                "SIX" => 6,
-                "SEVEN" => 7,
-                "EIGHT" => 8, // Game should have a max of eight options to choose from (in quiplash 1/2)
+                "TWO" => 2, // Only ever two options
                 _ => throw new FormatException() // Response was something unhandled here
             };
         }
 
-        var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+        var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
         {
-            Temperature = 1,
+            Temperature = Config.JokeBoat.VoteTemp,
             MaxTokens = 1,
             TopP = 1,
             StopSequences = new[] { "\n" }
@@ -408,6 +403,7 @@ The funniest was joke number: ";
             LogDebug($"Received unusable ProvideFavorite response: {completion.Text.Trim()}");
             return false;
         },
+        maxTries: Config.JokeBoat.MaxRetries,
         defaultResponse: "");
 
         if (result.Text != "")

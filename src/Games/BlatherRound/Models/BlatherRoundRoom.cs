@@ -1,4 +1,4 @@
-namespace JackboxGPT3.Games.BlatherRound.Models
+namespace JackboxGPT.Games.BlatherRound.Models
 {
     public struct BlatherRoundRoom
     {

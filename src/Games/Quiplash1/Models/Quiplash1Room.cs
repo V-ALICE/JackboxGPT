@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using JackboxGPT3.Games.Quiplash2.Models;
+using JackboxGPT.Games.Quiplash2.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace JackboxGPT3.Games.Quiplash1.Models
+namespace JackboxGPT.Games.Quiplash1.Models
 {
     public enum RoomState
     {

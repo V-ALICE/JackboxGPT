@@ -1,19 +1,18 @@
-﻿using System.Linq;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.Quiplash1;
-using JackboxGPT3.Games.Quiplash1.Models;
-using JackboxGPT3.Services;
+﻿using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.Quiplash1;
+using JackboxGPT.Games.Quiplash1.Models;
+using JackboxGPT.Services;
 using Serilog;
-using RoomState = JackboxGPT3.Games.Quiplash1.Models.RoomState;
+using RoomState = JackboxGPT.Games.Quiplash1.Models.RoomState;
 
-namespace JackboxGPT3.Engines
+namespace JackboxGPT.Engines
 {
     public class Quiplash1Engine : BaseQuiplashEngine<Quiplash1Client>
     {
         protected override string Tag => "quiplash";
 
-        public Quiplash1Engine(ICompletionService completionService, ILogger logger, Quiplash1Client client, int instance)
-            : base(completionService, logger, client, instance)
+        public Quiplash1Engine(ICompletionService completionService, ILogger logger, Quiplash1Client client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.OnRoomUpdate += OnRoomUpdate;

@@ -1,9 +1,9 @@
-using JackboxGPT3.Games.Common;
-using JackboxGPT3.Games.WordSpud.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Games.Common;
+using JackboxGPT.Games.WordSpud.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Games.WordSpud
+namespace JackboxGPT.Games.WordSpud
 {
     public class WordSpudClient : BcSerializedClient<WordSpudRoom, WordSpudPlayer>
     {

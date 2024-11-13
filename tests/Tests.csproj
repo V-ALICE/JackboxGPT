@@ -17,6 +17,6 @@
     <Folder Include="Extensions\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\src\JackboxGPT3.csproj" />
+    <ProjectReference Include="..\src\JackboxGPT.csproj" />
   </ItemGroup>
 </Project>

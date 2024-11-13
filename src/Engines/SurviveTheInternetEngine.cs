@@ -1,15 +1,15 @@
 using System;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using JackboxGPT3.Extensions;
-using JackboxGPT3.Games.Common;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.SurviveTheInternet;
-using JackboxGPT3.Games.SurviveTheInternet.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Extensions;
+using JackboxGPT.Games.Common;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.SurviveTheInternet;
+using JackboxGPT.Games.SurviveTheInternet.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Engines
+namespace JackboxGPT.Engines
 {
     public class SurviveTheInternetEngine : BaseJackboxEngine<SurviveTheInternetClient>
     {
@@ -19,7 +19,7 @@ namespace JackboxGPT3.Engines
         private readonly IConfigurationProvider _configuration;
 
         public SurviveTheInternetEngine(ICompletionService completionService, ILogger logger, IConfigurationProvider configuration,
-            SurviveTheInternetClient client, int instance) : base(completionService, logger, client, instance)
+            SurviveTheInternetClient client, ManagedConfigFile configFile, int instance) : base(completionService, logger, client, configFile, instance)
         {
             _configuration = configuration;
             _descriptionProvider = new ImageDescriptionProvider("sti_image_descriptions.json");
@@ -71,7 +71,7 @@ namespace JackboxGPT3.Engines
                     _ => "I don't know how to respond to that"
                 };
 
-            LogDebug($"Submitting entry \"{entry}\".");
+            LogInfo($"Submitting entry \"{entry}\"");
 
             JackboxClient.SendEntry(entry);
         }
@@ -97,14 +97,15 @@ A:";
             
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
                 {
-                    Temperature = 0.7,
+                    Temperature = Config.SurviveTheInternet.GenTemp,
                     MaxTokens = 32,
                     TopP = 1,
                     FrequencyPenalty = 0.3,
                     PresencePenalty = 0.2,
                     StopSequences = new[] { "\n" }
                 }, completion => completion.Text.Length <= maxLength,
-                defaultResponse: "I dunno");
+                maxTries: Config.SurviveTheInternet.MaxRetries,
+                defaultResponse: "Default response");
 
             return result.Text.Trim().TrimQuotes().TrimEnd('.');
         }
@@ -126,14 +127,15 @@ A:";
             
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
                 {
-                    Temperature = 0.7,
+                    Temperature = Config.SurviveTheInternet.GenTemp,
                     MaxTokens = 32,
                     TopP = 1,
                     FrequencyPenalty = 0.3,
                     PresencePenalty = 0.2,
                     StopSequences = new[] { "\n" }
                 }, completion => completion.Text.Length <= maxLength,
-                defaultResponse: "I dunno");
+                maxTries: Config.SurviveTheInternet.MaxRetries,
+                defaultResponse: "Default response");
 
             return result.Text.Trim().TrimQuotes().TrimEnd('.');
         }
@@ -157,14 +159,15 @@ An absurd and ridiculous Instagram caption for a photo of {description}:";
             
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
                 {
-                    Temperature = 0.7,
+                    Temperature = Config.SurviveTheInternet.GenTemp,
                     MaxTokens = 32,
                     TopP = 1,
                     FrequencyPenalty = 0.3,
                     PresencePenalty = 0.2,
                     StopSequences = isInstruct ? Array.Empty<string>() : new[] { "\n" }
                 }, completion => completion.Text.Length <= maxLength,
-                defaultResponse: "I dunno");
+                maxTries: Config.SurviveTheInternet.MaxRetries,
+                defaultResponse: "Default response");
 
             return result.Text.Trim().TrimQuotes().TrimEnd('.');
         }

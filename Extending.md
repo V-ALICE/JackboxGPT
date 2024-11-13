@@ -1,4 +1,4 @@
-# Extending JackboxGPT3
+# Extending JackboxGPT
 
 If you wish to add support for a new game, here are some rudimentary instructions:
 

@@ -3,14 +3,14 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
-using JackboxGPT3.Extensions;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Games.Quiplash3;
-using JackboxGPT3.Games.Quiplash3.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Extensions;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Games.Quiplash3;
+using JackboxGPT.Games.Quiplash3.Models;
+using JackboxGPT.Services;
 using Serilog;
 
-namespace JackboxGPT3.Engines
+namespace JackboxGPT.Engines
 {
     public class Quiplash3Engine : BaseQuiplashEngine<Quiplash3Client>
     {
@@ -18,8 +18,8 @@ namespace JackboxGPT3.Engines
 
         private bool _selectedAvatar;
 
-        public Quiplash3Engine(ICompletionService completionService, ILogger logger, Quiplash3Client client, int instance)
-            : base(completionService, logger, client, instance)
+        public Quiplash3Engine(ICompletionService completionService, ILogger logger, Quiplash3Client client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
@@ -125,7 +125,7 @@ Funny Answer:";
             
             var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
             {
-                Temperature = 0.75,
+                Temperature = Config.Quiplash.GenTemp,
                 MaxTokens = 32,
                 TopP = 1,
                 FrequencyPenalty = 0.2,
@@ -140,6 +140,7 @@ Funny Answer:";
                 LogDebug($"Received unusable ProvideThrip response: {completion.Text.Trim()}");
                 return false;
             },
+            maxTries: Config.Quiplash.MaxRetries,
             defaultResponse: "GPT has failed|to formulate|an answer");
 
             var split = result.Text.Split("|");

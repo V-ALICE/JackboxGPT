@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace JackboxGPT3.Games.Quiplash1.Models
+namespace JackboxGPT.Games.Quiplash1.Models
 {
     public struct SendEntryRequest
     {

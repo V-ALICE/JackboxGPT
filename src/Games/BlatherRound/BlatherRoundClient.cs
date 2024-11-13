@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using JackboxGPT3.Games.BlatherRound.Models;
-using JackboxGPT3.Games.Common;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Games.BlatherRound.Models;
+using JackboxGPT.Games.Common;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Services;
 using Newtonsoft.Json;
 using Serilog;
 
-namespace JackboxGPT3.Games.BlatherRound
+namespace JackboxGPT.Games.BlatherRound
 {
     public class BlatherRoundClient : PlayerSerializedClient<BlatherRoundRoom, BlatherRoundPlayer>
     {
@@ -52,6 +52,7 @@ namespace JackboxGPT3.Games.BlatherRound
         public void ChooseWord(int position, int index)
         {
             if (CurrentSentence == null) return;
+            if (index == -1) index = 0; // If the AI doesn't like any of the choices just submit the first one
             CurrentSentence.Parts[position].CurrentChoiceIndex = index;
             CurrentSentence.Parts[position].HasChoice = true;
 

@@ -3,16 +3,16 @@ using System;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
-using JackboxGPT3.Extensions;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Extensions;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog;
 using Websocket.Client;
 using Websocket.Client.Models;
 
-namespace JackboxGPT3.Games.Common
+namespace JackboxGPT.Games.Common
 {
     public abstract class BaseJackboxClient<TRoom, TPlayer> : IJackboxClient
     {

@@ -2,14 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using JackboxGPT3.Extensions;
-using JackboxGPT3.Games.Common;
-using JackboxGPT3.Games.Common.Models;
-using JackboxGPT3.Services;
+using JackboxGPT.Extensions;
+using JackboxGPT.Games.Common;
+using JackboxGPT.Games.Common.Models;
+using JackboxGPT.Services;
 using Serilog;
-using static JackboxGPT3.Services.ICompletionService;
+using static JackboxGPT.Services.ICompletionService;
 
-namespace JackboxGPT3.Engines
+namespace JackboxGPT.Engines
 {
     public abstract class BaseFibbageEngine<TClient> : BaseJackboxEngine<TClient>
         where TClient : IJackboxClient
@@ -19,13 +19,12 @@ namespace JackboxGPT3.Engines
 
         // Limit the amount of "too close to the answer" error retries
         protected int RetryCount;
-        protected const int MAX_SUBMISSION_RETRIES = 1;
 
         // Used solely for logging, since they submitted answer is not returned with the list of choices
         private string _myLastAnswer = "";
 
-        protected BaseFibbageEngine(ICompletionService completionService, ILogger logger, TClient client, int instance)
-            : base(completionService, logger, client, instance)
+        protected BaseFibbageEngine(ICompletionService completionService, ILogger logger, TClient client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
         }
 
@@ -104,22 +103,23 @@ Q: {fibPrompt}
 A:";
 
             var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
-            {
-                Temperature = 0.8,
-                MaxTokens = 16,
-                TopP = 1,
-                FrequencyPenalty = 0.2,
-                StopSequences = new[] { "\n" }
-            },
-            completion =>
-            {
-                var cleanText = CleanResult(completion.Text.Trim(), fibPrompt);
-                if (cleanText.Length > 0 && cleanText.Length <= maxLength && !cleanText.Contains("__")) return true;
+                {
+                    Temperature = Config.Fibbage.GenTemp,
+                    MaxTokens = 16,
+                    TopP = 1,
+                    FrequencyPenalty = 0.2,
+                    StopSequences = new[] { "\n" }
+                },
+                completion =>
+                {
+                    var cleanText = CleanResult(completion.Text.Trim(), fibPrompt);
+                    if (cleanText.Length > 0 && cleanText.Length <= maxLength && !cleanText.Contains("__")) return true;
 
-                LogDebug($"Received unusable ProvideLie response: \"{completion.Text.Trim()}\"");
-                return false;
-            },
-            defaultResponse: "");
+                    LogDebug($"Received unusable ProvideLie response: \"{completion.Text.Trim()}\"");
+                    return false;
+                },
+                maxTries: Config.Fibbage.MaxRetries,
+                defaultResponse: "");
 
             if (result.Text.Length == 0)
                 return GetDefaultLie();
@@ -145,7 +145,7 @@ A:";
 
             var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
                 {
-                    Temperature = 0.8,
+                    Temperature = Config.Fibbage.GenTemp,
                     MaxTokens = 16,
                     TopP = 1,
                     FrequencyPenalty = 0.2,
@@ -170,6 +170,7 @@ A:";
                     LogDebug($"Received unusable ProvideDoubleLie response: \"{completion.Text.Trim()}\"");
                     return false;
                 },
+                maxTries: Config.Fibbage.MaxRetries,
                 defaultResponse: "");
 
             if (result.Text.Length == 0)
@@ -215,27 +216,28 @@ I think the truth is answer number: ";
 
             const string defaultResp = "__NORESPONSE";
             var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
-            {
-                Temperature = 1,
-                MaxTokens = 1,
-                TopP = 1,
-                StopSequences = new[] { "\n" }
-            }, completion =>
-            {
-                try
                 {
-                    var answer = IntParseExt(completion.Text.Trim());
-                    if (0 < answer && answer <= lies.Count) return true;
-                }
-                catch(FormatException)
+                    Temperature = Config.Fibbage.VoteTemp,
+                    MaxTokens = 1,
+                    TopP = 1,
+                    StopSequences = new[] { "\n" }
+                }, completion =>
                 {
-                    // pass
-                }
+                    try
+                    {
+                        var answer = IntParseExt(completion.Text.Trim());
+                        if (0 < answer && answer <= lies.Count) return true;
+                    }
+                    catch (FormatException)
+                    {
+                        // pass
+                    }
 
-                LogDebug($"Received unusable ProvideTruth response: {completion.Text.Trim()}");
-                return false;
-            },
-            defaultResponse: defaultResp);
+                    LogDebug($"Received unusable ProvideTruth response: {completion.Text.Trim()}");
+                    return false;
+                },
+                maxTries: Config.Fibbage.MaxRetries,
+                defaultResponse: defaultResp);
 
             if (result.Text != defaultResp)
                 return IntParseExt(result.Text.Trim()) - 1;
@@ -249,7 +251,7 @@ I think the truth is answer number: ";
             LieLock = true;
 
             string lie;
-            if (RetryCount > MAX_SUBMISSION_RETRIES)
+            if (RetryCount > Config.Fibbage.SubmissionRetries)
             {
                 RetryCount = 0;
                 LogInfo("Submitting a default answer because there were too many submission errors.");
@@ -275,7 +277,7 @@ I think the truth is answer number: ";
             LieLock = true;
 
             Tuple<string, string> lie;
-            if (RetryCount > MAX_SUBMISSION_RETRIES)
+            if (RetryCount > Config.Fibbage.SubmissionRetries)
             {
                 RetryCount = 0;
                 LogInfo("Submitting a default answer because there were too many submission errors.");
