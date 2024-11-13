@@ -41,7 +41,8 @@ public class ManagedConfigFile
     {
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
-        public int GuessDelayMs { get; set; }
+        public int GuessDelayMinMs { get; set; }
+        public int GuessDelayMaxMs { get; set; }
         public int SentenceDelayMs { get; set; }
         public int SkipDelayMs { get; set; }
         public int WordDelayMs { get; set; }
@@ -51,7 +52,8 @@ public class ManagedConfigFile
         {
             MaxRetries = 5;
             GenTemp = 0.7f;
-            GuessDelayMs = 3000;
+            GuessDelayMinMs = 2000;
+            GuessDelayMaxMs = 4000;
             SentenceDelayMs = 10000;
             SkipDelayMs = 1000;
             WordDelayMs = 100;

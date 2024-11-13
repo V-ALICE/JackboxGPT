@@ -33,8 +33,8 @@ See [this guide](Extending.md) for some information on adding more games.
 - "How 'behaved' is GPT-3 in Jackbox games?"
 > Currently the actual wordage of AI responses are sent to the game unfiltered (punctuation and formatting are cleaned up), so any garbage that GPT-3 might generate would come through into the game. I don't know how filtered the AI is on OpenAI's side, but rarely there are some really unfun answers that make their way into responses, so just be aware of that.
 
-- "Why are there no releases?"
+- "No releases?"
 > Since I've been working on this mostly just for my own use there hasn't really been a need to make one. A new person running this project would already have to do extra setup (an OpenAI account with billing prepped and an API key) even if there was a prebuilt exe available, so it still wouldn't be super accessible.
 
-- "Does this work for anything besides English?"
-> Probably not, but it hasn't been tested.
+- "Can the AI play without human players?"
+> This is possible for any game that has "Start Game from Controller Only" option (Party Pack 3+).

@@ -52,6 +52,7 @@ namespace JackboxGPT.Games.BlatherRound
         public void ChooseWord(int position, int index)
         {
             if (CurrentSentence == null) return;
+            if (index == -1) index = 0; // If the AI doesn't like any of the choices just submit the first one
             CurrentSentence.Parts[position].CurrentChoiceIndex = index;
             CurrentSentence.Parts[position].HasChoice = true;
 

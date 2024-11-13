@@ -11,9 +11,41 @@ namespace JackboxGPT
 {
     public static class Program
     {
+        private static void GetUserInput(CommandLineConfigurationProvider config)
+        {
+            // Request instance count and room code from user
+            var instances = "";
+            while (!int.TryParse(instances, out _))
+            {
+                Console.Write("Number of instances: ");
+                instances = Console.ReadLine() ?? "";
+            }
+            var roomCode = "";
+            while (roomCode.Length != 4 || !roomCode.All(char.IsLetter))
+            {
+                Console.Write("Room Code: ");
+                roomCode = Console.ReadLine() ?? "";
+            }
+            config.WorkerCount = int.Parse(instances);
+            config.RoomCode = roomCode;
+        }
+
+        private static bool CheckEndOfService()
+        {
+            Console.WriteLine("");
+            while (true)
+            {
+                Console.Write("New Room? [Y/N]: ");
+                var answer = Console.ReadLine() ?? "";
+
+                if (answer.ToUpper().StartsWith('Y')) return true;
+                if (answer.ToUpper().StartsWith('N')) return false;
+            }
+        }
+
         private static CommandLineConfigurationProvider GetBaseConfig(IReadOnlyCollection<string> args, ManagedConfigFile configFile)
         {
-            // Command line overrides config file
+            // Command line overrides config file and skips user input
             if (args.Count > 0)
                 return Parser.Default.ParseArguments<CommandLineConfigurationProvider>(args).Value;
 
@@ -31,22 +63,6 @@ namespace JackboxGPT
                 conf.LogLevel = "debug";
 #endif
 
-            // Request instance count and room code from user
-            var instances = "";
-            while (!int.TryParse(instances, out _))
-            {
-                Console.Write("Number of instances: ");
-                instances = Console.ReadLine() ?? "";
-            }
-            var roomCode = "";
-            while (roomCode.Length != 4 || !roomCode.All(char.IsLetter))
-            {
-                Console.Write("Room Code: ");
-                roomCode = Console.ReadLine() ?? "";
-            }
-            conf.WorkerCount = int.Parse(instances);
-            conf.RoomCode = roomCode;
-
             return conf;
         }
 
@@ -58,11 +74,15 @@ namespace JackboxGPT
 
         public static void Main(string[] args)
         {
+            DotEnv.AutoConfig();
             var configFile = LoadConfigFile("config.toml");
             var baseConfig = GetBaseConfig(args, configFile);
 
-            DotEnv.AutoConfig();
-            Startup.Bootstrap(baseConfig, configFile).Wait();
+            do
+            {
+                if (args.Length == 0) GetUserInput(baseConfig);
+                Startup.Bootstrap(baseConfig, configFile).Wait();
+            } while (CheckEndOfService());
         }
     }
 }

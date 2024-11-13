@@ -57,8 +57,9 @@ namespace JackboxGPT.Engines
             foreach (var guess in guesses)
             {
                 if (JackboxClient.GameState.Self.State != PlayerState.EnterSingleText) return;
+                await Task.Delay(_random.Next(Config.BlatherRound.GuessDelayMinMs, Config.BlatherRound.GuessDelayMaxMs));
                 JackboxClient.SubmitGuess(guess);
-                await Task.Delay(Config.BlatherRound.GuessDelayMs);
+                LogInfo($"Guessing: {guess}");
             }
         }
 
@@ -72,7 +73,7 @@ namespace JackboxGPT.Engines
             if (nonPasswordEndings.Any(check => self.Choices[choice].Html.EndsWith(check)))
                 LogVerbose($"Selecting option: {self.Choices[choice].Html}");
             else
-                LogDebug($"Password is: {self.Choices[choice].Html}");
+                LogInfo($"Password is: {self.Choices[choice].Html}");
         }
 
         private async void OnWriteNewSentence(object sender, Sentence sentence)

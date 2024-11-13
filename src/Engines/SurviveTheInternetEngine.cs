@@ -71,7 +71,7 @@ namespace JackboxGPT.Engines
                     _ => "I don't know how to respond to that"
                 };
 
-            LogDebug($"Submitting entry \"{entry}\".");
+            LogInfo($"Submitting entry \"{entry}\"");
 
             JackboxClient.SendEntry(entry);
         }

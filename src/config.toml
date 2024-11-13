@@ -1,3 +1,5 @@
+# Changing these settings may cause things to work unexpectedly. Make sure you're aware of what you're changing!
+
 [general]
 name = "GPT"
 logging_level = "information"  # verbose, debug, information, warning, error, fatal
@@ -6,7 +8,8 @@ engine = "davinci-002"
 [blather_round]
 max_retries = 5
 gen_temp = 0.8
-guess_delay_ms = 3000
+guess_delay_min_ms = 2000
+guess_delay_max_ms = 4000
 sentence_delay_ms = 10000
 skip_delay_ms = 1000
 word_delay_ms = 100
@@ -16,7 +19,7 @@ part_delay_ms = 500
 max_retries = 5
 gen_temp = 0.8
 vote_temp = 0.8
-submission_retries = 1
+submission_retries = 2
 category_choice_delay_ms = 3000
 
 [joke_boat]
