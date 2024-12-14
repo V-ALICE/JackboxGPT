@@ -111,18 +111,63 @@ public class ManagedConfigFile
 
     public class SurveyScrambleBlock
     {
+        public enum TeamSelectionMethodType
+        {
+            Default,
+            Split,
+            Left,
+            Right
+        }
+
+        public enum ContinueSelectionMethodType
+        {
+            Split,
+            Continue,
+            End
+        }
+
+        public enum DareSelectionMethodType
+        {
+            Random,
+            Hardest,
+            Easiest
+        }
+
+        public enum DashSabotageMethodType
+        {
+            Leaders,
+            Random
+        }
+
+        public enum DashDoubledownMethodType
+        {
+            Winning,
+            Losing,
+            Close,
+            Random
+        }
+
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
         public float VoteTemp { get; set; }
-        
+
+        public ContinueSelectionMethodType ContinueSelectionMethod { get; set; }
+
         public int ResponseMinDelayMs { get; set; }
         public int SpeedResponseMaxDelayMs { get; set; }
         public int SpeedGenFailDelayMs { get; set; }
 
         public int TeamSelectionDelayMs { get; set; }
         public int TeamLockDelayMs { get; set; }
-        public string TeamSelectionMethod { get; set; } // DEFAULT, SPLIT, LEFT, RIGHT
         public double TeamUseSuggestionChance { get; set; }
+        public TeamSelectionMethodType TeamSelectionMethod { get; set; }
+
+        public DareSelectionMethodType DareSelectionMethod { get; set; }
+
+        public DashSabotageMethodType DashSabotageMethod { get; set; }
+        public DashDoubledownMethodType DashDoubledownMethod { get; set; }
+        public double DashSabotageChance { get; set; }
+        public double DashDoubledownChance { get; set; }
 
         public SurveyScrambleBlock()
         {
@@ -136,8 +181,16 @@ public class ManagedConfigFile
 
             TeamSelectionDelayMs = 4000;
             TeamLockDelayMs = 1000;
-            TeamSelectionMethod = "DEFAULT";
             TeamUseSuggestionChance = 0.33;
+
+            TeamSelectionMethod = TeamSelectionMethodType.Default;
+            ContinueSelectionMethod = ContinueSelectionMethodType.Split;
+            DareSelectionMethod = DareSelectionMethodType.Random;
+            DashSabotageMethod = DashSabotageMethodType.Leaders;
+            DashDoubledownMethod = DashDoubledownMethodType.Random;
+
+            DashDoubledownChance = 0.25;
+            DashSabotageChance = 0.75;
         }
     }
 

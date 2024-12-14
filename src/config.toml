@@ -1,4 +1,4 @@
-# Changing these settings may cause things to work unexpectedly. Make sure you're aware of what you're changing!
+# Changing these settings may cause things to work in unexpected ways. Make sure you're aware of what you're changing!
 
 [general]
 name = "GPT"
@@ -42,8 +42,14 @@ speed_response_max_delay_ms = 4000
 speed_gen_fail_delay_ms = 10000
 team_selection_delay_ms = 1000
 team_lock_delay_ms = 3000
-team_selection_method = "DEFAULT"  # DEFAULT, SPLIT, LEFT, RIGHT
+team_selection_method = "DEFAULT"    # DEFAULT, SPLIT, LEFT, RIGHT
 team_use_suggestion_chance = 0.33
+continue_selection_method = "SPLIT"  # SPLIT, CONTINUE, END
+dare_selection_method = "RANDOM"     # RANDOM, HARDEST, EASIEST
+dash_sabotage_method = "LEADERS"     # LEADERS, RANDOM
+dash_sabotage_chance = 0.75
+dash_doubledown_method = "RANDOM"    # WINNING, LOSING, CLOSE, RANDOM
+dash_doubledown_chance = 0.25
 
 [survive_the_internet]
 max_retries = 5

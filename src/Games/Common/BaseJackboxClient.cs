@@ -204,5 +204,10 @@ namespace JackboxGPT.Games.Common
             var op = typeof(T) == typeof(string) ? OP_UPDATE_TEXT : OP_UPDATE_OBJECT;
             WsSend(op, cs);
         }
+
+        public int GetPlayerId()
+        {
+            return _gameState.PlayerId;
+        }
     }
 }

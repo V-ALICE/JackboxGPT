@@ -478,6 +478,8 @@ def _sort_object_by_key(data: DataSet, key: str) -> bool:
             pass
         case "roundInfo":
             pass
+        case "horseRaceInfo":
+            pass
         case _:
             print(f'WARNING: Unhandled object key {msg["result"]["key"]}')
 
