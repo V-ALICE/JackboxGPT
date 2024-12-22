@@ -12,4 +12,7 @@ public struct SurveyScrambleRoundInfo
 
     [JsonProperty("roundFormat")]
     public string RoundFormat { get; set; }
+
+    [JsonProperty("surveyLength")]
+    public int SurveyLength { get; set; }
 }

@@ -14,7 +14,13 @@ public enum Kind
     Bounce,
     ChoiceWaiting,
     Choices,
+    ChoicesWaiting,
+    Dare,
+    DareText,
     HighLow,
+    HorseRace,
+    HorseRaceSabotage,
+    HorseRaceWaiting,
     Lobby,
     Speed,
     TeamChoice,
@@ -104,8 +110,50 @@ public struct SurveyScramblePlayer
     [JsonProperty("textEntry")]
     public PlayerTextEntry TextEntry { get; set; }
 
+    [JsonProperty("highDifficulty")]
+    public int HighDifficulty { get; set; }
+
+    [JsonProperty("lowDifficulty")]
+    public int LowDifficulty { get; set; }
+
+    [JsonProperty("nextPlayer")]
+    public int NextPlayer { get; set; }
+
+    [JsonProperty("dareDifficulty")]
+    public int DareDifficulty { get; set; }
+
     [JsonProperty("goal")]
     public string Goal { get; set; }
+
+    [JsonProperty("objectResponseKey")]
+    public string ObjectResponseKey { get; set; }
+
+    [JsonProperty("showCallShot")]
+    public bool ShowCallShot { get; set; }
+
+    [JsonProperty("textResponseKey")]
+    public string TextResponseKey { get; set; }
+
+    [JsonProperty("successfulGuess")]
+    public string? SuccessfulGuess { get; set; }
+
+    [JsonProperty("decoys")]
+    public List<string> Decoys { get; set; }
+
+    [JsonProperty("infoEntityKey")]
+    public string InfoEntityKey { get; set; }
+
+    [JsonProperty("options")]
+    public List<string> Options { get; set; }
+
+    [JsonProperty("scoreToWin")]
+    public int ScoreToWin { get; set; }
+
+    [JsonProperty("doubledDown")]
+    public bool DoubledDown { get; set; }
+
+    [JsonProperty("optionIndex")]
+    public int OptionIndex { get; set; }
 
     [JsonProperty("canEndRound")]
     public bool CanEndRound { get; set; }
