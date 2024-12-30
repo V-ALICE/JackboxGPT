@@ -58,7 +58,11 @@ namespace JackboxGPT.Engines
 
         private async Task<string> ProvideSpud(string currentWord)
         {
-            var prompt = $@"The game Word Spud is played by continuing a word or phrase with a funny related word or phrase. For example:
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = "You are a player in a game called Word Spud, in which players attempt to use part of a word or phrase to make a new one. You will be given a word, please finish the word or turn it into a short phrase. Your answer will come after the word given.",
+                ChatStylePrompt = currentWord,
+                CompletionStylePrompt = $@"The game Word Spud is played by continuing a word or phrase with a funny related word or phrase. For example:
 
 - jelly|fish
 - deal| with it
@@ -67,11 +71,11 @@ namespace JackboxGPT.Engines
 - tailor| made
 - real| life
 - how| do you do
-- {currentWord}|";
+- {currentWord}|",
+            };
+            LogVerbose($"Prompt: {(Config.Model.UseChatForPrompts ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            LogVerbose($"GPT-3 Prompt: {prompt}");
-
-            var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatForPrompts, new CompletionParameters
                 {
                     Temperature = Config.WordSpud.GenTemp,
                     MaxTokens = 16,

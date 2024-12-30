@@ -88,7 +88,12 @@ namespace JackboxGPT.Engines
 
         private async Task<string> ProvideLie(string fibPrompt, int maxLength)
         {
-            var prompt = $@"Here are some prompts from the game Fibbage, in which players attempt to write convincing lies to trick others.
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = "You are a player in a game called Fibbage, in which players attempt to write convincing lies to trick others. Please respond to the prompt with just your answer.",
+                ChatStylePrompt = fibPrompt,
+                CompletionStylePrompt = 
+                $@"Here are some prompts from the game Fibbage, in which players attempt to write convincing lies to trick others.
 
 Q: In the mid-1800s, Queen Victoria employed a man named Jack Black, whose official job title was Royal _______.
 A: Flute player
@@ -100,9 +105,11 @@ Q: Due to a habit he had while roaming the halls of the White House, President L
 A: Desk Butt
 
 Q: {fibPrompt}
-A:";
+A:",
+            };
+            LogVerbose($"Prompt: {(Config.Model.UseChatForPrompts ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatForPrompts, new CompletionParameters
                 {
                     Temperature = Config.Fibbage.GenTemp,
                     MaxTokens = 16,
@@ -129,9 +136,13 @@ A:";
         
         private async Task<Tuple<string, string>> ProvideDoubleLie(string fibPrompt, int maxLength)
         {
-            var prompt = $@"Here are some prompts from the game Fibbage, in which players attempt to write convincing lies to trick others. These prompts require two responses, separated by the | character.
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = "You are a player in a game called Fibbage, in which players attempt to write convincing lies to trick others. This prompt requires two responses, so please respond to the prompt with only your answers separated by the | character.",
+                ChatStylePrompt = fibPrompt,
+                CompletionStylePrompt = $@"Here are some prompts from the game Fibbage, in which players attempt to write convincing lies to trick others. These prompts require two responses, separated by the | character.
 
-Q: Researchers at Aalto and Oxfort universities studied the phone records of over 3.2 million Europeans and found that people have the most _______ when they _______.
+Q: Researchers at Aalto and Oxford universities studied the phone records of over 3.2 million Europeans and found that people have the most _______ when they _______.
 A: friends|are 25 years old
 
 Q: The controversial Supreme Court case Nix v. Hedden upset more than a few people when the court ruled that _______ are _______.
@@ -141,9 +152,11 @@ Q: In an attempt to teach kids an important lesson, Bernie Karl of Alaska wants 
 A: box|handguns
 
 Q: {fibPrompt}
-A:";
+A:",
+            };
+            LogVerbose($"Prompt: {(Config.Model.UseChatForPrompts ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatForPrompts, new CompletionParameters
                 {
                     Temperature = Config.Fibbage.GenTemp,
                     MaxTokens = 16,
@@ -187,19 +200,25 @@ A:";
             for(var i = 0; i < lies.Count; i++)
                 options += $"{i + 1}. {lies[i].SelectionText}\n";
 
-            var prompt = $@"I was given a list of lies and one truth for the prompt ""{fibPrompt}"". These were my options:
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = $"You are a player in a game called Fibbage, in which players attempt to write convincing lies to trick others. Please respond with only the number corresponding with the option that you think is correct for the prompt \"{fibPrompt}\"",
+                ChatStylePrompt = options,
+                CompletionStylePrompt = $@"I was given a list of lies and one truth for the prompt ""{fibPrompt}"". These were my options:
 
 {options}
-I think the truth is answer number: ";
+I think the truth is answer number: ",
+            };
+            LogVerbose($"Prompt: {(Config.Model.UseChatForChoices ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
             int IntParseExt(string input)
             {
                 if (input.Length < 1) throw new FormatException();
 
                 // Assume the response is int-parsable if it starts with a digit character
-                if (char.IsDigit(input[0])) return int.Parse(input);
+                if (char.IsDigit(input[0])) return int.Parse(new string(input.TakeWhile(char.IsDigit).ToArray()));
                 
-                // GPT responds in English sometimes, so this (manually) tries to check for that
+                // GPT-3 responds in English sometimes, so this (manually) tries to check for that
                 return input.ToUpper() switch
                 {
                     "ONE" => 1,
@@ -215,7 +234,7 @@ I think the truth is answer number: ";
             }
 
             const string defaultResp = "__NORESPONSE";
-            var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatForChoices, new CompletionParameters
                 {
                     Temperature = Config.Fibbage.VoteTemp,
                     MaxTokens = 1,

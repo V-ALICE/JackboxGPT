@@ -8,6 +8,7 @@ using JackboxGPT.Games.SurviveTheInternet;
 using JackboxGPT.Games.SurviveTheInternet.Models;
 using JackboxGPT.Services;
 using Serilog;
+using static JackboxGPT.Services.ICompletionService;
 
 namespace JackboxGPT.Engines
 {
@@ -76,10 +77,14 @@ namespace JackboxGPT.Engines
             JackboxClient.SendEntry(entry);
         }
         
-        #region GPT-3 Prompts
         private async Task<string> ProvideResponse(string stiPrompt, int maxLength)
         {
-            var prompt = $@"In the first part of the game Survive the Internet, players are asked questions which they should answer short and concisely. For example:
+            // Chat doesn't listen to character count requests very well, but will usually be within 10
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = $"You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your answer in {maxLength-10} characters or less.",
+                ChatStylePrompt = stiPrompt,
+                CompletionStylePrompt = $@"In the first part of the game Survive the Internet, players are asked questions which they should answer short and concisely. For example:
 
 Q: How's your retirement fund doing?
 A: It's nonexistant.
@@ -91,11 +96,11 @@ Q: Describe an attitude you admire.
 A: I love positive people.
 
 Q: {stiPrompt}
-A:";
-            
-            LogVerbose($"GPT-3 Prompt: {prompt}");
-            
-            var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+A:",
+            };
+            LogVerbose($"Prompt: {(Config.Model.UseChatForPrompts ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+
+            var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatForPrompts, new ICompletionService.CompletionParameters
                 {
                     Temperature = Config.SurviveTheInternet.GenTemp,
                     MaxTokens = 32,
@@ -112,7 +117,12 @@ A:";
         
         private async Task<string> ProvideTwist(TextPrompt stiPrompt, int maxLength)
         {
-            var prompt = $@"Below are some responses from the party game Survive the Internet. The goal of this game is to take another player's words and twist them to make the other player look ridiculous.
+            // Chat doesn't listen to character count requests very well, but will usually be within 10
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = $"You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your answer in {maxLength-10} characters or less.",
+                ChatStylePrompt = $"\"{stiPrompt.BlackBox}\" {stiPrompt.BelowBlackBox.ToLower().Trim()}",
+                CompletionStylePrompt = $@"Below are some responses from the party game Survive the Internet. The goal of this game is to take another player's words and twist them to make the other player look ridiculous.
 
 ""I'm skeptical"" would be a ridiculous response to this comment: She said yes!
 ""Too much nudity"" would be a ridiculous comment to a video titled: How to Play Guitar
@@ -121,11 +131,11 @@ A:";
 ""Let's hunt him down"" would be a terrible comment in response to this news headline: Local Man Wins Lottery
 ""Not that impressive tbh"" would be a ridiculous comment to a video titled: Johnny Learns How to Ride a Bike!
 ""It's not the most comfortable thing to sit on"" would be a ridiculous review for a product called: 18-inch Wooden Spoon
-""{stiPrompt.BlackBox}"" {stiPrompt.BelowBlackBox.ToLower().Trim()}";
-            
-            LogVerbose($"GPT-3 Prompt: {prompt}");
-            
-            var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+""{stiPrompt.BlackBox}"" {stiPrompt.BelowBlackBox.ToLower().Trim()}",
+            };
+            LogVerbose($"Prompt: {(Config.Model.UseChatForPrompts ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+
+            var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatForPrompts, new ICompletionService.CompletionParameters
                 {
                     Temperature = Config.SurviveTheInternet.GenTemp,
                     MaxTokens = 32,
@@ -142,29 +152,30 @@ A:";
         
         private async Task<string> ProvideImageTwist(TextPrompt stiPrompt, int maxLength)
         {
-            var isInstruct = _configuration.OpenAIEngine.EndsWith("-instruct-beta");
             var description = _descriptionProvider.ProvideDescriptionForImageId(GetImageId(stiPrompt));
 
-            // TODO rewrite, it is ugly :(
-            var prompt = isInstruct ?
-                $@"Write an absurd, weird, funny, ridiculous Instagram caption for a photo of {description}." :
-                $@"Below are some responses from the party game Survive the Internet. In the final round, each player takes an image and tries to come up with a caption that would make the other players look crazy or ridiculous.
+            // Chat doesn't listen to character count requests very well, but will usually be within 10
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = $"You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your answer in {maxLength-10} characters or less. Please do not use emoji.",
+                ChatStylePrompt = $"An absurd and ridiculous Instagram caption for a photo of {description}:",
+                CompletionStylePrompt = $@"Below are some responses from the party game Survive the Internet. In the final round, each player takes an image and tries to come up with a caption that would make the other players look crazy or ridiculous.
 
 An absurd and ridiculous Instagram caption for a photo of a group of mailboxes, with one open: Learned how to lock pick earlier. Score!
 An absurd and ridiculous Instagram caption for a photo of people's legs through bathroom stalls: Just asked these guys how they were doing. They didn't respond.
 An absurd and ridiculous Instagram caption for a photo of a group of people posing for a photo at a funeral: Funeral? I thought this was a party.
-An absurd and ridiculous Instagram caption for a photo of {description}:";
-            
-            LogVerbose($"GPT-3 Prompt: {prompt}");
-            
-            var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+An absurd and ridiculous Instagram caption for a photo of {description}:",
+            };
+            LogVerbose($"Prompt: {(Config.Model.UseChatForPrompts ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+
+            var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatForPrompts, new ICompletionService.CompletionParameters
                 {
                     Temperature = Config.SurviveTheInternet.GenTemp,
                     MaxTokens = 32,
                     TopP = 1,
                     FrequencyPenalty = 0.3,
                     PresencePenalty = 0.2,
-                    StopSequences = isInstruct ? Array.Empty<string>() : new[] { "\n" }
+                    StopSequences = new[] { "\n" }
                 }, completion => completion.Text.Length <= maxLength,
                 maxTries: Config.SurviveTheInternet.MaxRetries,
                 defaultResponse: "Default response");
@@ -178,6 +189,5 @@ An absurd and ridiculous Instagram caption for a photo of {description}:";
             var match = Regex.Match(stiPrompt.AboveBlackBox, pattern);
             return match.Success ? match.Value : "Baseball.jpg"; // why not
         }
-        #endregion
     }
 }

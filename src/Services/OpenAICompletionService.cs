@@ -14,7 +14,8 @@ namespace JackboxGPT.Services
     public class OpenAICompletionService : ICompletionService
     {
         private readonly OpenAIAPI _api;
-        private readonly Model _model;
+        private readonly Model _chat_model;
+        private readonly Model _completion_model;
 
         /// <summary>
         /// Instantiate an <see cref="OpenAICompletionService"/> from the environment.
@@ -24,11 +25,77 @@ namespace JackboxGPT.Services
         private OpenAICompletionService(string apiKey, IConfigurationProvider configuration)
         {
             _api = new OpenAIAPI(apiKey);
-            _model = new Model(configuration.OpenAIEngine);
+            _chat_model = new Model(configuration.OpenAIChatEngine);
+            _completion_model = new Model(configuration.OpenAICompletionEngine);
+        }
+
+        private async Task<CompletionResponse?> GetCompletion(TextInput prompt, CompletionParameters completionParameters)
+        {
+            CompletionResult apiResult;
+            try
+            {
+                apiResult = await _api.Completions.CreateCompletionAsync(
+                    prompt.CompletionStylePrompt,
+                    _completion_model,
+                    completionParameters.MaxTokens,
+                    completionParameters.Temperature,
+                    completionParameters.TopP,
+                    1,
+                    logProbs: completionParameters.LogProbs,
+                    echo: completionParameters.Echo,
+                    presencePenalty: completionParameters.PresencePenalty,
+                    frequencyPenalty: completionParameters.FrequencyPenalty,
+                    stopSequences: completionParameters.StopSequences
+                );
+            }
+            catch (HttpRequestException)
+            {
+                await Task.Delay(100);
+                return null;
+            }
+
+            return new CompletionResponse
+            {
+                Text = apiResult.Completions[0].Text,
+                FinishReason = apiResult.Completions[0].FinishReason
+            };
+        }
+
+        private async Task<CompletionResponse?> GetChatCompletion(TextInput prompt, CompletionParameters completionParameters)
+        {
+            // Probably better to just create an entirely new conversation every attempt since the previous attempts are just wasted tokens
+            var ai = _api.Chat.CreateConversation();
+            ai.Model = _chat_model;
+            ai.RequestParameters.MaxTokens = completionParameters.MaxTokens;
+            ai.RequestParameters.Temperature = completionParameters.Temperature;
+            ai.RequestParameters.TopP = completionParameters.TopP;
+            ai.RequestParameters.PresencePenalty = completionParameters.PresencePenalty;
+            ai.RequestParameters.FrequencyPenalty = completionParameters.FrequencyPenalty;
+            //ai.RequestParameters.MultipleStopSequences = completionParameters.StopSequences;
+            ai.RequestParameters.NumChoicesPerMessage = 1;
+            ai.AppendSystemMessage(prompt.ChatSystemMessage);
+
+            ai.AppendUserInput(prompt.ChatStylePrompt);
+            try
+            {
+                await ai.GetResponseFromChatbotAsync();
+            }
+            catch (HttpRequestException)
+            {
+                await Task.Delay(100);
+                return null;
+            }
+
+            return new CompletionResponse
+            {
+                Text = ai.MostRecentApiResult.Choices[0].Message.TextContent,
+                FinishReason = ai.MostRecentApiResult.Choices[0].FinishReason
+            };
         }
 
         public async Task<CompletionResponse> CompletePrompt(
-            string prompt,
+            TextInput prompt,
+            bool chatCompletion,
             CompletionParameters completionParameters,
             Func<CompletionResponse, bool> conditions = null,
             int maxTries = 5,
@@ -41,47 +108,31 @@ namespace JackboxGPT.Services
             while(!validResponse && tries < maxTries)
             {
                 tries++;
-                CompletionResult apiResult;
-                try
-                {
-                    apiResult = await _api.Completions.CreateCompletionAsync(
-                        prompt,
-                        _model,
-                        completionParameters.MaxTokens,
-                        completionParameters.Temperature,
-                        completionParameters.TopP,
-                        1,
-                        logProbs: completionParameters.LogProbs,
-                        echo: completionParameters.Echo,
-                        presencePenalty: completionParameters.PresencePenalty,
-                        frequencyPenalty: completionParameters.FrequencyPenalty,
-                        stopSequences: completionParameters.StopSequences
-                    );
-                }
-                catch (HttpRequestException)
-                {
-                    await Task.Delay(100);
-                    continue;
-                }
 
-                result = ChoiceToCompletionResponse(apiResult.Completions[0]);
+                CompletionResponse? output;
+                if (chatCompletion)
+                    output = await GetChatCompletion(prompt, completionParameters);
+                else
+                    output = await GetCompletion(prompt, completionParameters);
+                if (!output.HasValue) continue;
 
+                result = output.Value;
                 if (conditions == null) break;
                 validResponse = conditions(result);
             }
 
-            if (!validResponse)
-                result = new CompletionResponse
-                {
-                    FinishReason = "no_valid_responses",
-                    Text = defaultResponse
-                };
+            if (validResponse) return result;
 
-            return result;
+            return new CompletionResponse
+            {
+                FinishReason = "no_valid_responses",
+                Text = defaultResponse
+            };
         }
         
         public async Task<T> CompletePrompt<T>(
-            string prompt,
+            TextInput prompt,
+            bool chatCompletion,
             CompletionParameters completionParameters,
             Func<CompletionResponse, T> process,
             T defaultResponse,
@@ -95,46 +146,21 @@ namespace JackboxGPT.Services
             while(!validResponse && tries < maxTries)
             {
                 tries++;
-                CompletionResult apiResult;
-                try
-                {
-                    apiResult = await _api.Completions.CreateCompletionAsync(
-                        prompt,
-                        _model,
-                        completionParameters.MaxTokens,
-                        completionParameters.Temperature,
-                        completionParameters.TopP,
-                        1,
-                        logProbs: completionParameters.LogProbs,
-                        echo: completionParameters.Echo,
-                        presencePenalty: completionParameters.PresencePenalty,
-                        frequencyPenalty: completionParameters.FrequencyPenalty,
-                        stopSequences: completionParameters.StopSequences
-                    );
-                }
-                catch (HttpRequestException)
-                {
-                    await Task.Delay(100);
-                    continue;
-                }
 
-                var result = ChoiceToCompletionResponse(apiResult.Completions[0]);
-                processedResult = process(result);
+                CompletionResponse? output;
+                if (chatCompletion)
+                    output = await GetChatCompletion(prompt, completionParameters);
+                else
+                    output = await GetCompletion(prompt, completionParameters);
+                if (!output.HasValue) continue;
+                
+                processedResult = process(output.Value);
 
                 if (conditions == null) break;
                 validResponse = conditions(processedResult);
             }
 
             return processedResult;
-        }
-
-        private static CompletionResponse ChoiceToCompletionResponse(Choice choice)
-        {
-            return new()
-            {
-                Text = choice.Text,
-                FinishReason = choice.FinishReason
-            };
         }
 
         private static double CosineSimilarity(IList<float> vector1, IList<float> vector2)

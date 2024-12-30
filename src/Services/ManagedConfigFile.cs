@@ -3,6 +3,7 @@
 public class ManagedConfigFile
 {
     public GeneralBlock General { get; set; }
+    public ModelBlock Model { get; set; }
     public BlatherRoundBlock BlatherRound { get; set; }
     public FibbageBlock Fibbage { get; set; }
     public JokeBoatBlock JokeBoat { get; set; }
@@ -14,6 +15,7 @@ public class ManagedConfigFile
     public ManagedConfigFile()
     {
         General = new GeneralBlock();
+        Model = new ModelBlock();
         BlatherRound = new BlatherRoundBlock();
         Fibbage = new FibbageBlock();
         JokeBoat = new JokeBoatBlock();
@@ -25,15 +27,29 @@ public class ManagedConfigFile
 
     public class GeneralBlock
     {
-        public string Name { get; set; }
+        public string PlayerName { get; set; }
         public string LoggingLevel { get; set; }  // verbose, debug, information, warning, error, fatal
-        public string Engine { get; set; }
 
         public GeneralBlock()
         {
-            Name = "GPT";
+            PlayerName = "GPT";
             LoggingLevel = "information";
-            Engine = "davinci-002";
+        }
+    }
+
+    public class ModelBlock
+    {
+        public string CompletionEngine { get; set; }
+        public string ChatEngine { get; set; }
+        public bool UseChatForPrompts { get; set; }
+        public bool UseChatForChoices { get; set; }
+
+        public ModelBlock()
+        {
+            CompletionEngine = "davinci-002";
+            ChatEngine = "gpt-4o-mini";
+            UseChatForPrompts = true;
+            UseChatForChoices = true;
         }
     }
 

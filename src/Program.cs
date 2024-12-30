@@ -38,8 +38,8 @@ namespace JackboxGPT
                 Console.Write("New Room? [Y/N]: ");
                 var answer = Console.ReadLine() ?? "";
 
-                if (answer.ToUpper().StartsWith('Y')) return true;
-                if (answer.ToUpper().StartsWith('N')) return false;
+                if (answer.Trim().ToUpper() == "Y") return true;
+                if (answer.Trim().ToUpper() == "N") return false;
             }
         }
 
@@ -52,9 +52,10 @@ namespace JackboxGPT
             // Load entries from config file
             var conf = new CommandLineConfigurationProvider
             {
-                PlayerName = configFile.General.Name,
+                PlayerName = configFile.General.PlayerName,
                 LogLevel = configFile.General.LoggingLevel,
-                OpenAIEngine = configFile.General.Engine
+                OpenAICompletionEngine = configFile.Model.CompletionEngine,
+                OpenAIChatEngine = configFile.Model.ChatEngine
             };
 
 #if DEBUG
@@ -74,13 +75,19 @@ namespace JackboxGPT
 
         public static void Main(string[] args)
         {
-            DotEnv.AutoConfig();
+            DotEnv.Load();
             var configFile = LoadConfigFile("config.toml");
             var baseConfig = GetBaseConfig(args, configFile);
 
-            do
+            if (args.Length > 0)
             {
-                if (args.Length == 0) GetUserInput(baseConfig);
+                // CLI session
+                Startup.Bootstrap(baseConfig, configFile).Wait();
+            }
+            else do
+            {
+                // Interactive session
+                GetUserInput(baseConfig);
                 Startup.Bootstrap(baseConfig, configFile).Wait();
             } while (CheckEndOfService());
         }

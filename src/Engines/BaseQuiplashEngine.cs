@@ -7,6 +7,7 @@ using JackboxGPT.Extensions;
 using JackboxGPT.Games.Common;
 using JackboxGPT.Services;
 using Serilog;
+using static JackboxGPT.Services.ICompletionService;
 
 namespace JackboxGPT.Engines
 {
@@ -44,7 +45,11 @@ namespace JackboxGPT.Engines
 
         private async Task<string> ProvideQuip(string qlPrompt, int maxLength)
         {
-            var prompt = $@"Below are some prompts and outlandish, funny, ridiculous answers to them.
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. Please respond with only your answer.",
+                ChatStylePrompt = qlPrompt,
+                CompletionStylePrompt = $@"Below are some prompts and outlandish, funny, ridiculous answers to them.
 
 Prompt: Something you can never have too many of
 Funny Answer: Reasons to stay inside
@@ -59,9 +64,11 @@ Prompt: Your fish are bored! You should put a _______ in their tank to amuse the
 Funny Answer: Shark
 
 Prompt: {qlPrompt}
-Funny Answer:";
+Funny Answer:",
+            };
+            LogVerbose($"Prompt: {(Config.Model.UseChatForPrompts ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatForPrompts, new ICompletionService.CompletionParameters
                 {
                     Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,
@@ -95,17 +102,23 @@ Funny Answer:";
             for(var i = 0; i < quips.Count; i++)
                 options += $"{i + 1}. {quips[i]}\n";
 
-            var prompt = $@"I was playing a game of Quiplash, and the prompt was ""{qlPrompt}"". My options were:
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = $"You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. Please respond with only the number corresponding with the option that you think is the funniest answer for the prompt \"{qlPrompt}\"",
+                ChatStylePrompt = qlPrompt,
+                CompletionStylePrompt = $@"I was playing a game of Quiplash, and the prompt was ""{qlPrompt}"". My options were:
 
 {options}
-The funniest was prompt number: ";
+The funniest was prompt number: ",
+            };
+            LogVerbose($"Prompt: {(Config.Model.UseChatForChoices ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
             int IntParseExt(string input)
             {
                 if (input.Length < 1) throw new FormatException();
 
                 // Assume the response is int-parsable if it starts with a digit character
-                if (char.IsDigit(input[0])) return int.Parse(input);
+                if (char.IsDigit(input[0])) return int.Parse(new string(input.TakeWhile(char.IsDigit).ToArray()));
 
                 // GPT likes to respond in English sometimes, so this (manually) tries to check for that
                 return input.ToUpper() switch
@@ -122,7 +135,7 @@ The funniest was prompt number: ";
                 };
             }
 
-            var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatForChoices, new ICompletionService.CompletionParameters
                 {
                     Temperature = Config.Quiplash.VoteTemp,
                     MaxTokens = 1,

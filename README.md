@@ -1,8 +1,8 @@
 # JackboxGPT
 
-Because we wanted to use AI for party games instead of "useful" things.
+Because everyone wants to use AI for party games instead of "useful" things, right?
 
-This project is a Jackbox client controlled by GPT-3 (note: this is a pre-ChatGPT model). It currently supports these games:
+This project is a Jackbox client controlled by OpenAI's GPT models. It currently supports these games:
 
 - Fibbage XL/2/3/4
 - Quiplash XL/2/3
@@ -24,17 +24,14 @@ See [this guide](Extending.md) for some information on adding more games.
 
 ## FAQ
 
-- "Why GPT-3 specifically and not ChatGPT or another newer model?"
-> Mostly because this project was created before ChatGPT existed, and also because I have a preference for the older models. Adding support for newer models as an option is something I'll probably look into in the future though.
+- "What model types are supported?"
+> This project was created before ChatGPT existed, so the original implementation used Completion models only. It now supports Chat models as well, and there are options to use either type or a mix of both.
 
-- "How well does GPT-3 perform in Jackbox games?"
-> For normal prompts/answers it does a pretty decent job (by my standards), giving a mix of answers in a range from simple/boring to wild/outlandish. Some of the games also make requests for voting on answers though, which the AI isn't any good at (newer models would be better for that particular use case).
-
-- "How 'behaved' is GPT-3 in Jackbox games?"
-> Currently the actual wordage of AI responses are sent to the game unfiltered (punctuation and formatting are cleaned up), so any garbage that GPT-3 might generate would come through into the game. I don't know how filtered the AI is on OpenAI's side, but rarely there are some really unfun answers that make their way into responses, so just be aware of that.
-
-- "No releases?"
-> Since I've been working on this mostly just for my own use there hasn't really been a need to make one. A new person running this project would already have to do extra setup (an OpenAI account with billing prepped and an API key) even if there was a prebuilt exe available, so it still wouldn't be super accessible.
+- "How well do the Completion models work in Jackbox games?"
+> For normal prompts/answers they do a decent job for what they are, giving a mix of answers in a range from simple/boring to wild/outlandish. These models are less adept at things like voting on answers though, unsurprisingly, but it's possible to configure things to use a Chat model for this type of prompt specifically. Please note that Completion models are somewhat more chaotic than Chat models, so rarely there are some really unfun answers that make their way into Completion responses.
 
 - "Can the AI play without human players?"
 > This is possible for any game that has "Start Game from Controller Only" option (Party Pack 3+).
+
+- "No releases?"
+> Since I've been working on this mostly just for my own use there hasn't really been a need to make one. Anyone downloading this project would already have to do extra setup (an OpenAI account with billing prepped and an API key) even if there was a prebuilt executable available, so it still wouldn't be super accessible. I'd still like to look into this eventually though.

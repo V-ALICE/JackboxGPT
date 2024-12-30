@@ -21,6 +21,7 @@ using JackboxGPT.Services;
 using Newtonsoft.Json;
 using Serilog;
 using Serilog.Events;
+using Serilog.Sinks.SystemConsole.Themes;
 
 namespace JackboxGPT
 {
@@ -32,8 +33,10 @@ namespace JackboxGPT
         {
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Is(Enum.Parse<LogEventLevel>(configuration.LogLevel, true))
-                .WriteTo.Console(outputTemplate:
-                    "{Prefix}[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+                .WriteTo.Console(
+                    outputTemplate: "{Prefix}[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
+                    theme: AnsiConsoleTheme.Sixteen
+                )
                 .CreateLogger();
 
             Log.Logger = logger;

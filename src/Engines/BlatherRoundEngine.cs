@@ -9,6 +9,7 @@ using JackboxGPT.Games.BlatherRound.Models;
 using JackboxGPT.Games.Common.Models;
 using JackboxGPT.Services;
 using Serilog;
+using static JackboxGPT.Services.ICompletionService;
 
 namespace JackboxGPT.Engines
 {
@@ -251,9 +252,12 @@ Oh, childhood!
 My guess: Etch-a-Sketch
 ###
              */
-            
-            var prompt =
-                $@"A list of sentences to describe a place:
+
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = $"You are a player in a game called Blather 'Round, in which players attempt to guess a {JackboxClient.CurrentCategory} based on list of vague clues. Please respond to the list of clues with only a list of guesses separated by the | character.",
+                ChatStylePrompt = string.Join('\n', JackboxClient.CurrentSentences),
+                CompletionStylePrompt = $@"A list of sentences to describe a place:
 
 It's a fantastic food place.
 It's where you have the guilty pleasure.
@@ -261,18 +265,19 @@ So much din-din!
 It's where you delight in the wrap.
 It's a spicy food.
 
-Guesses: Taco Bell; Wendy's; restaurant; McDonald's; Subway
+Guesses: Taco Bell|Wendy's|restaurant|McDonald's|Subway
 ###
 A list of sentences to describe a {JackboxClient.CurrentCategory}:
 
 {string.Join('\n', JackboxClient.CurrentSentences)}
 
-Guesses:";
-            
-            LogVerbose($"GPT-3 Prompt: {prompt}");
-            
+Guesses:",
+            };
+            LogVerbose($"Prompt: {(Config.Model.UseChatForPrompts ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+
             var result = await CompletionService.CompletePrompt(
                 prompt,
+                Config.Model.UseChatForPrompts,
                 new ICompletionService.CompletionParameters
                 {
                     Temperature = Config.BlatherRound.GenTemp,
@@ -282,7 +287,7 @@ Guesses:";
                     PresencePenalty = 0.2,
                     StopSequences = new[] { "\n", "###" }
                 },
-                completion => completion.Text.Trim().Split(";").Select(CleanAnswer).Where(answer =>
+                completion => completion.Text.Trim().Split("|").Select(CleanAnswer).Where(answer =>
                     answer != "" && answer.Length <= 40 && !_guessesUsedThisRound.Contains(answer)).ToList(),
                 new List<string>(),
                 maxTries: Config.BlatherRound.MaxRetries

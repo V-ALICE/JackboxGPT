@@ -58,8 +58,7 @@ namespace JackboxGPT.Engines
                 LieLock = TruthLock = false;
             }
         }
-        
-        #region Game Actions
+
         private async void SubmitLie()
         {
             var lie = await FormLie(JackboxClient.GameState.Room.Question);
@@ -94,9 +93,7 @@ namespace JackboxGPT.Engines
 
             JackboxClient.ChooseBloop(choices[category].Id);
         }
-        #endregion
 
-        #region Prompt Cleanup
         protected override string GetDefaultLie()
         {
             var choices = JackboxClient.GameState.Self.SuggestionChoices;
@@ -108,6 +105,5 @@ namespace JackboxGPT.Engines
 
             return choices[choices.RandomIndex()];
         }
-        #endregion
     }
 }

@@ -1,9 +1,14 @@
 # Changing these settings may cause things to work in unexpected ways. Make sure you're aware of what you're changing!
 
 [general]
-name = "GPT"
+player_name = "GPT"
 logging_level = "information"  # verbose, debug, information, warning, error, fatal
-engine = "davinci-002"
+
+[model]
+completion_engine = "davinci-002"
+chat_engine = "gpt-4o-mini"
+use_chat_for_prompts = false  # Note: gpt-4o-mini is cheaper/smarter than davinci-002, but is less varied in responses
+use_chat_for_choices = true
 
 [blather_round]
 max_retries = 5

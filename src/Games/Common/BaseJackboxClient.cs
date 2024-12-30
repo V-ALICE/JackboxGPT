@@ -10,7 +10,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog;
 using Websocket.Client;
-using Websocket.Client.Models;
 
 namespace JackboxGPT.Games.Common
 {
@@ -137,6 +136,8 @@ namespace JackboxGPT.Games.Common
 
         private void WsReceived(ResponseMessage msg)
         {
+            if (msg.Text == null) return;
+
             var srvMsg = JsonConvert.DeserializeObject<ServerMessage<JRaw>>(msg.Text);
             
             if (srvMsg.OpCode == OP_CLIENT_WELCOME)

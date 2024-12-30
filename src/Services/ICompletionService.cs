@@ -35,6 +35,13 @@ namespace JackboxGPT.Services
             public string[] StopSequences;
         }
 
+        public struct TextInput
+        {
+            public string ChatSystemMessage;
+            public string ChatStylePrompt;
+            public string CompletionStylePrompt;
+        }
+
         public struct SearchResponse
         {
             public int Index;
@@ -42,7 +49,8 @@ namespace JackboxGPT.Services
         }
 
         public Task<CompletionResponse> CompletePrompt(
-            string prompt,
+            TextInput prompt,
+            bool chatCompletion,
             CompletionParameters completionParameters,
             Func<CompletionResponse, bool> conditions,
             int maxTries = 5,
@@ -50,7 +58,8 @@ namespace JackboxGPT.Services
         );
         
         public Task<T> CompletePrompt<T>(
-            string prompt,
+            TextInput prompt,
+            bool chatCompletion,
             CompletionParameters completionParameters,
             Func<CompletionResponse, T> process,
             T defaultResponse,

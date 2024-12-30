@@ -9,6 +9,7 @@ using JackboxGPT.Games.Quiplash3;
 using JackboxGPT.Games.Quiplash3.Models;
 using JackboxGPT.Services;
 using Serilog;
+using static JackboxGPT.Services.ICompletionService;
 
 namespace JackboxGPT.Engines
 {
@@ -109,7 +110,11 @@ namespace JackboxGPT.Engines
         
         private async Task<string> ProvideThrip(string qlPrompt, int maxLength = 45)
         {
-            var prompt = $@"In the third round of the game Quiplash, players must take a prompt and give three different short answers that make sense, separated by a | character.
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. This prompt requires three responses, so please respond to the prompt with only your answers separated by the | character.",
+                ChatStylePrompt = qlPrompt,
+                CompletionStylePrompt = $@"In the third round of the game Quiplash, players must take a prompt and give three different short answers that make sense, separated by a | character.
 
 Question: Three things every good orgy has
 Funny Answer: scented oils|a non-disclosure agreement|disgraced politician
@@ -121,9 +126,11 @@ Question: The three things you must do to survive a zombie apocalypse
 Funny Answer: hunker down|play video games|hope this all blows over
 
 Question: {qlPrompt}
-Funny Answer:";
-            
-            var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+Funny Answer:"
+            };
+            LogVerbose($"Prompt: {(Config.Model.UseChatForPrompts ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+
+            var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatForPrompts, new ICompletionService.CompletionParameters
             {
                 Temperature = Config.Quiplash.GenTemp,
                 MaxTokens = 32,
@@ -148,7 +155,6 @@ Funny Answer:";
             return output.Trim();
         }
 
-        #region Prompt Cleanup
         protected override string CleanPromptForEntry(string prompt)
         {
             prompt = prompt.ToLower();
@@ -186,6 +192,5 @@ Funny Answer:";
 
             return string.Join("|", quips ?? throw new InvalidOperationException()).Trim();
         }
-        #endregion
     }
 }
