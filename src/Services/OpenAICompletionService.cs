@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using OpenAI_API;
+using OpenAI_API.Chat;
 using OpenAI_API.Completions;
 using OpenAI_API.Models;
 using static JackboxGPT.Services.ICompletionService;
@@ -14,127 +15,190 @@ namespace JackboxGPT.Services
     public class OpenAICompletionService : ICompletionService
     {
         private readonly OpenAIAPI _api;
-        private readonly Model _model;
+        private readonly Model _chatModel;
+        private readonly Model _completionModel;
+
+        private readonly string _chatBaseContext;
+        private readonly Dictionary<string, Conversation> _convoLookup = new(); 
 
         /// <summary>
         /// Instantiate an <see cref="OpenAICompletionService"/> from the environment.
         /// </summary>
-        public OpenAICompletionService(IConfigurationProvider configuration) : this(Environment.GetEnvironmentVariable("OPENAI_API_KEY"), configuration) { }
-
-        private OpenAICompletionService(string apiKey, IConfigurationProvider configuration)
+        public OpenAICompletionService(IConfigurationProvider configuration, string context = "")
+            : this(Environment.GetEnvironmentVariable("OPENAI_API_KEY"), configuration, context)
         {
-            _api = new OpenAIAPI(apiKey);
-            _model = new Model(configuration.OpenAIEngine);
         }
 
-        public async Task<CompletionResponse> CompletePrompt(
-            string prompt,
-            CompletionParameters completionParameters,
-            Func<CompletionResponse, bool> conditions = null,
-            int maxTries = 5,
-            string defaultResponse = ""
-        ) {
+        private OpenAICompletionService(string apiKey, IConfigurationProvider configuration, string context = "")
+        {
+            _api = new OpenAIAPI(apiKey);
+            _chatModel = new Model(configuration.OpenAIChatEngine);
+            _completionModel = new Model(configuration.OpenAICompletionEngine);
+            _chatBaseContext = context;
+        }
+
+        private async Task<CompletionResponse?> GetCompletion(string prompt, CompletionParameters completionParameters)
+        {
+            CompletionResult apiResult;
+            try
+            {
+                apiResult = await _api.Completions.CreateCompletionAsync(
+                    prompt,
+                    _completionModel,
+                    completionParameters.MaxTokens,
+                    completionParameters.Temperature,
+                    null,
+                    1,
+                    logProbs: completionParameters.LogProbs,
+                    echo: completionParameters.Echo,
+                    presencePenalty: completionParameters.PresencePenalty,
+                    frequencyPenalty: completionParameters.FrequencyPenalty,
+                    stopSequences: completionParameters.StopSequences
+                );
+            }
+            catch (HttpRequestException)
+            {
+                await Task.Delay(100);
+                return null;
+            }
+
+            return new CompletionResponse
+            {
+                Text = apiResult.Completions[0].Text,
+                FinishReason = apiResult.Completions[0].FinishReason
+            };
+        }
+
+        private async Task<CompletionResponse?> GetChatCompletion(string prompt, Conversation ai)
+        {
+            ai.AppendUserInput(prompt);
+            try
+            {
+                await ai.GetResponseFromChatbotAsync();
+            }
+            catch (HttpRequestException)
+            {
+                await Task.Delay(100);
+                return null;
+            }
+
+            var response = new CompletionResponse
+            {
+                Text = ai.MostRecentApiResult.Choices[0].Message.TextContent,
+                FinishReason = ai.MostRecentApiResult.Choices[0].FinishReason
+            };
+            return response;
+        }
+
+        private Conversation GetConversation(string systemMsg, CompletionParameters completionParameters)
+        {
+            if (systemMsg.Length == 0)
+                return null;
+
+            if (_convoLookup.ContainsKey(systemMsg))
+                return _convoLookup[systemMsg];
+
+            var convo = _api.Chat.CreateConversation();
+            convo.Model = _chatModel;
+            convo.RequestParameters.MaxTokens = completionParameters.MaxTokens;
+            convo.RequestParameters.Temperature = completionParameters.Temperature;
+            //ai.RequestParameters.TopP = completionParameters.TopP;
+            convo.RequestParameters.PresencePenalty = completionParameters.PresencePenalty;
+            convo.RequestParameters.FrequencyPenalty = completionParameters.FrequencyPenalty;
+            //ai.RequestParameters.MultipleStopSequences = completionParameters.StopSequences;
+            convo.RequestParameters.NumChoicesPerMessage = 1;
+            if (_chatBaseContext.Length != 0) convo.AppendSystemMessage(_chatBaseContext);
+            convo.AppendSystemMessage(systemMsg);
+            _convoLookup[systemMsg] = convo;
+
+            return convo;
+        }
+
+        public void ResetOne(string key)
+        {
+            _convoLookup.Remove(key);
+        }
+
+        public void ResetAll()
+        {
+            _convoLookup.Clear();
+        }
+
+        public async Task<CompletionResponse> CompletePrompt(TextInput prompt, bool chatCompletion,
+            CompletionParameters completionParameters, Func<CompletionResponse, bool> conditions = null,
+            int maxTries = 5, string defaultResponse = "")
+        {
             var result = new CompletionResponse();
+            var convo = GetConversation(prompt.ChatSystemMessage, completionParameters);
             var validResponse = false;
             var tries = 0;
 
-            while(!validResponse && tries < maxTries)
+            while (!validResponse && tries < maxTries)
             {
                 tries++;
-                CompletionResult apiResult;
-                try
-                {
-                    apiResult = await _api.Completions.CreateCompletionAsync(
-                        prompt,
-                        _model,
-                        completionParameters.MaxTokens,
-                        completionParameters.Temperature,
-                        completionParameters.TopP,
-                        1,
-                        logProbs: completionParameters.LogProbs,
-                        echo: completionParameters.Echo,
-                        presencePenalty: completionParameters.PresencePenalty,
-                        frequencyPenalty: completionParameters.FrequencyPenalty,
-                        stopSequences: completionParameters.StopSequences
-                    );
-                }
-                catch (HttpRequestException)
-                {
-                    await Task.Delay(100);
-                    continue;
-                }
 
-                result = ChoiceToCompletionResponse(apiResult.Completions[0]);
+                CompletionResponse? output;
+                if (chatCompletion)
+                {
+                    if (tries == 1)
+                        output = await GetChatCompletion(prompt.ChatStylePrompt, convo);
+                    else
+                        output = await GetChatCompletion("Try again", convo);
+                }
+                else
+                {
+                    output = await GetCompletion(prompt.CompletionStylePrompt, completionParameters);
+                }
+                if (!output.HasValue) continue;
 
+                result = output.Value;
                 if (conditions == null) break;
                 validResponse = conditions(result);
             }
 
-            if (!validResponse)
-                result = new CompletionResponse
-                {
-                    FinishReason = "no_valid_responses",
-                    Text = defaultResponse
-                };
+            if (validResponse) return result;
 
-            return result;
+            return new CompletionResponse
+            {
+                FinishReason = "no_valid_responses",
+                Text = defaultResponse
+            };
         }
-        
-        public async Task<T> CompletePrompt<T>(
-            string prompt,
-            CompletionParameters completionParameters,
-            Func<CompletionResponse, T> process,
-            T defaultResponse,
-            Func<T, bool> conditions = null,
-            int maxTries = 5
-        ) {
+
+        public async Task<T> CompletePrompt<T>(TextInput prompt, bool chatCompletion,
+            CompletionParameters completionParameters, Func<CompletionResponse, T> process, T defaultResponse,
+            Func<T, bool> conditions = null, int maxTries = 5)
+        {
             var processedResult = defaultResponse;
+            var convo = GetConversation(prompt.ChatSystemMessage, completionParameters);
             var validResponse = false;
             var tries = 0;
 
-            while(!validResponse && tries < maxTries)
+            while (!validResponse && tries < maxTries)
             {
                 tries++;
-                CompletionResult apiResult;
-                try
-                {
-                    apiResult = await _api.Completions.CreateCompletionAsync(
-                        prompt,
-                        _model,
-                        completionParameters.MaxTokens,
-                        completionParameters.Temperature,
-                        completionParameters.TopP,
-                        1,
-                        logProbs: completionParameters.LogProbs,
-                        echo: completionParameters.Echo,
-                        presencePenalty: completionParameters.PresencePenalty,
-                        frequencyPenalty: completionParameters.FrequencyPenalty,
-                        stopSequences: completionParameters.StopSequences
-                    );
-                }
-                catch (HttpRequestException)
-                {
-                    await Task.Delay(100);
-                    continue;
-                }
 
-                var result = ChoiceToCompletionResponse(apiResult.Completions[0]);
-                processedResult = process(result);
+                CompletionResponse? output;
+                if (chatCompletion)
+                {
+                    if (tries == 1)
+                        output = await GetChatCompletion(prompt.ChatStylePrompt, convo);
+                    else
+                        output = await GetChatCompletion("Try again", convo);
+                }
+                else
+                {
+                    output = await GetCompletion(prompt.CompletionStylePrompt, completionParameters);
+                }
+                if (!output.HasValue) continue;
+
+                processedResult = process(output.Value);
 
                 if (conditions == null) break;
                 validResponse = conditions(processedResult);
             }
 
             return processedResult;
-        }
-
-        private static CompletionResponse ChoiceToCompletionResponse(Choice choice)
-        {
-            return new()
-            {
-                Text = choice.Text,
-                FinishReason = choice.FinishReason
-            };
         }
 
         private static double CosineSimilarity(IList<float> vector1, IList<float> vector2)

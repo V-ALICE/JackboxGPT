@@ -11,8 +11,8 @@ namespace JackboxGPT.Engines
     {
         protected override string Tag => "quiplash";
 
-        public Quiplash1Engine(ICompletionService completionService, ILogger logger, Quiplash1Client client, ManagedConfigFile configFile, int instance)
-            : base(completionService, logger, client, configFile, instance)
+        public Quiplash1Engine(ICompletionService completionService, ILogger logger, Quiplash1Client client, ManagedConfigFile configFile, int instance, uint coinFlip)
+            : base(completionService, logger, client, configFile, instance, coinFlip)
         {
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.OnRoomUpdate += OnRoomUpdate;

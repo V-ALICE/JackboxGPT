@@ -17,8 +17,8 @@ namespace JackboxGPT.Engines
         // Fibbage 4 doesn't send the original prompt when it sends lie choices, so this keeps track of it
         private string _previousQuestion; 
 
-        public Fibbage4Engine(ICompletionService completionService, ILogger logger, Fibbage4Client client, ManagedConfigFile configFile, int instance)
-            : base(completionService, logger, client, configFile, instance)
+        public Fibbage4Engine(ICompletionService completionService, ILogger logger, Fibbage4Client client, ManagedConfigFile configFile, int instance, uint coinFlip)
+            : base(completionService, logger, client, configFile, instance, coinFlip)
         {
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.Connect();
@@ -80,7 +80,6 @@ namespace JackboxGPT.Engines
                 SubmitTruth(self);
         }
 
-        #region Game Actions
         private async void SubmitLie(Fibbage4Player self)
         {
             _previousQuestion = self.Question;
@@ -156,12 +155,14 @@ namespace JackboxGPT.Engines
 
             JackboxClient.ChooseCategory(category);
         }
-        #endregion
 
-        #region GPT-3 Prompts
         private async Task<string> ProvideMutualLie(string fibPrompt1, string fibPrompt2, int maxLength)
         {
-            var prompt = $@"Here are some double prompts from the game Fibbage, in which players attempt to write convincing lies to trick others. These prompts require a single response which answers both prompt.
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = "You are a player in a game called Fibbage, in which players attempt to write convincing lies to trick others. Since this is a game about tricking other players, please do not respond with the correct answer. There will be two prompts, please respond with only one concise answer that makes sense for both prompts.",
+                ChatStylePrompt = $"Here's a new pair of prompts:\n{fibPrompt1}\n{fibPrompt2}",
+                CompletionStylePrompt = $@"Here are some double prompts from the game Fibbage, in which players attempt to write convincing lies to trick others. These prompts require a single response which answers both prompt.
 
 Q1: In 2008, as part of an investigation, The New York Daily News managed to steal _______.
 Q2: Allie Tarantino of New York was surprised to find he owned a rare trading card featuring _______.
@@ -173,9 +174,11 @@ A: The human dynamo
 
 Q1: {fibPrompt1}
 Q2: {fibPrompt2}
-A:";
+A:",
+            };
+            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
                 {
                     Temperature = Config.Fibbage.GenTemp,
                     MaxTokens = 16,
@@ -200,9 +203,7 @@ A:";
             var cleanText = CleanResult(result.Text.Trim(), fibPrompt1);
             return CleanResult(cleanText, fibPrompt2);
         }
-        #endregion
 
-        #region Prompt Cleanup
         protected override string CleanPromptForEntry(string prompt)
         {
             return prompt.Replace("[blank][/blank]", "_______").StripTags();
@@ -232,6 +233,5 @@ A:";
             var parts = choices[choices.RandomIndex()].Split('|');
             return new Tuple<string, string>(parts[0], parts[1]);
         }
-        #endregion
     }
 }

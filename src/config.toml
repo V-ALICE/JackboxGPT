@@ -1,11 +1,17 @@
 # Changing these settings may cause things to work in unexpected ways. Make sure you're aware of what you're changing!
 
 [general]
-name = "GPT"
+player_name = "GPT"
 logging_level = "information"  # verbose, debug, information, warning, error, fatal
-engine = "davinci-002"
+
+# Note: gpt-4o-mini is cheaper/smarter than davinci-002, but has less varied in responses
+[model]
+completion_engine = "davinci-002"
+chat_engine = "gpt-4o-mini"
+use_chat_engine_for_voting = true
 
 [blather_round]
+engine_preference = "CHAT"  # COMPLETION, CHAT, MIX
 max_retries = 5
 gen_temp = 0.8
 guess_delay_min_ms = 2000
@@ -16,6 +22,7 @@ word_delay_ms = 100
 part_delay_ms = 500
 
 [fibbage]
+engine_preference = "MIX"
 max_retries = 5
 gen_temp = 0.8
 vote_temp = 0.8
@@ -23,17 +30,20 @@ submission_retries = 2
 category_choice_delay_ms = 3000
 
 [joke_boat]
+engine_preference = "MIX"
 max_retries = 5
 gen_temp = 0.8
 vote_temp = 0.8
 max_topic_gen_count = 5
 
 [quiplash]
+engine_preference = "MIX"
 max_retries = 5
 gen_temp = 0.7
 vote_temp = 0.8
 
 [survey_scramble]
+engine_preference = "MIX"
 max_retries = 4
 gen_temp = 0.8
 vote_temp = 0.7
@@ -52,10 +62,15 @@ dash_doubledown_method = "RANDOM"    # WINNING, LOSING, CLOSE, RANDOM
 dash_doubledown_chance = 0.25
 
 [survive_the_internet]
+engine_preference = "MIX"
 max_retries = 5
 gen_temp = 0.7
+vote_temp = 0.8
 
 [word_spud]
+engine_preference = "CHAT"
 max_retries = 5
 gen_temp = 0.8
+vote_temp = 0.8
 vote_delay_ms = 1000
+allow_ai_votes = true

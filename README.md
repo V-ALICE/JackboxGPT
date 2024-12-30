@@ -1,16 +1,16 @@
 # JackboxGPT
 
-Because we wanted to use AI for party games instead of "useful" things.
+Because everyone wants to use AI for party games instead of "useful" things, right?
 
-This project is a Jackbox client controlled by GPT-3 (note: this is a pre-ChatGPT model). It currently supports these games:
+This project is a Jackbox client controlled by OpenAI's GPT models. It currently supports these games:
 
-- Fibbage XL/2/3/4
-- Quiplash XL/2/3
 - Blather 'Round
+- Fibbage XL/2/3/4
 - Joke Boat
+- Quiplash XL/2/3
 - Survey Scramble _(all modes besides Bounce)_
-- Survive the Internet _(currently chooses images/votes randomly)_
-- Word Spud _(currently always votes positively)_
+- Survive the Internet
+- Word Spud
 
 ## Usage
 
@@ -24,14 +24,14 @@ See [this guide](Extending.md) for some information on adding support for more g
 
 ## FAQ
 
-- "Why GPT-3 specifically and not ChatGPT or another newer model?"
-> Mostly because this project was created before ChatGPT existed, and also because I have a preference for the older models. Adding support for newer models as an option is something I'll probably look into in the future though.
+- "What model types are supported?"
+> This project was created before ChatGPT existed, so the original implementation used Completion models only. It now supports Chat models as well, and there are options to use either type or a mix of both.
 
-- "How well does GPT-3 perform in Jackbox games?"
-> For normal prompts/answers it does a pretty decent job (by my standards), giving a mix of answers in a range from simple/boring to wild/outlandish. Some of the games also make requests for voting on answers though, which the AI isn't any good at (newer models would be better for that particular use case).
+- "How well do the Chat models work in Jackbox games?"
+> Pretty well, unsurprisingly. The one area they do stuggle in is variety. Since these model types are "smarter" they have a tendency to want to generate the same responses to equivalent prompts. This is especially prevalent in games with multiple AI players, as they may all end up generating the same or similar responses. There has been an effort to nudge the AI to try to minimize this, but it will still occur at least sometimes. In the future I may look into an 'overseer' module to track AI instances to make sure they don't duplicate answers, if configured to.
 
-- "How 'behaved' is GPT-3 in Jackbox games?"
-> Currently the actual wordage of AI responses are sent to the game unfiltered (punctuation and formatting are cleaned up), so any garbage that GPT-3 might generate would come through into the game. I don't know how filtered the AI is on OpenAI's side, but rarely there are some really unfun answers that make their way into responses, so just be aware of that.
+- "How well do the Completion models work in Jackbox games?"
+> For normal prompts/answers they do a decent job for what they are, giving a mix of answers in a range from simple/boring to wild/outlandish. These models are less adept at things like voting on answers though, unsurprisingly, but it's possible to configure the program to use a Chat model for this type of prompt specifically. Please note that Completion models are somewhat more chaotic than Chat models, so rarely there will likely be really unfun answers that make their way into Completion responses.
 
 - "Can the AI play without human players?"
 > This is possible for any game that has "Start Game from Controller Only" option (Party Pack 3+).

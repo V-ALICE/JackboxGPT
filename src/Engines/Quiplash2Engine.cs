@@ -6,6 +6,7 @@ using JackboxGPT.Games.Quiplash2;
 using JackboxGPT.Games.Quiplash2.Models;
 using JackboxGPT.Services;
 using Serilog;
+using static JackboxGPT.Services.ICompletionService;
 using RoomState = JackboxGPT.Games.Quiplash2.Models.RoomState;
 
 namespace JackboxGPT.Engines
@@ -16,8 +17,8 @@ namespace JackboxGPT.Engines
 
         private readonly ImageDescriptionProvider _descriptionProvider;
 
-        public Quiplash2Engine(ICompletionService completionService, ILogger logger, Quiplash2Client client, ManagedConfigFile configFile, int instance)
-            : base(completionService, logger, client, configFile, instance)
+        public Quiplash2Engine(ICompletionService completionService, ILogger logger, Quiplash2Client client, ManagedConfigFile configFile, int instance, uint coinFlip)
+            : base(completionService, logger, client, configFile, instance, coinFlip)
         {
             _descriptionProvider = new ImageDescriptionProvider("ql2_comic_descriptions.json");
 
@@ -129,7 +130,12 @@ namespace JackboxGPT.Engines
 
         private async Task<string> ProvideWordLashQuip(string qlPrompt, string word, int maxLength)
         {
-            var prompt = $@"Below are some prompts and outlandish, funny, ridiculous answers to them.
+            var prompt = new TextInput
+            {
+                // Chat likes to explain its answers to this for some reason, which is why it gets told to limit the words
+                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. You'll be going up against another player, so try to be original. Please respond to the prompt with only a few words as your answer.",
+                ChatStylePrompt = $"{qlPrompt} {word}",
+                CompletionStylePrompt = $@"Below are some prompts and outlandish, funny, ridiculous answers to them.
 
 Q: Come up with a new cartoon character with this word in his name: SLIME
 Funny Answer: Slime E. Mann
@@ -144,9 +150,11 @@ Q: Come up with a shocking newspaper headline with this word in its title: PANTS
 Funny Answer: Cat wearing no pants arrested for indecent exposure!
 
 Q: {qlPrompt} {word}
-Funny Answer:";
+Funny Answer:",
+            };
+            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
 
-            var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new ICompletionService.CompletionParameters
                 {
                     Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,
@@ -172,7 +180,11 @@ Funny Answer:";
 
         private async Task<string> ProvideAcroLashQuip(string qlPrompt, int maxLength)
         {
-            var prompt = $@"Below are some acroynms and outlandish, funny, ridiculous interpretations of them.
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. You'll be going up against another player, so try to be original. Please respond to the prompt with only an acronym that works.",
+                ChatStylePrompt = qlPrompt,
+                CompletionStylePrompt = $@"Below are some acroynms and outlandish, funny, ridiculous interpretations of them.
 
 Q: Come up with a funny interpretation of this acronym: F.F.E.
 Funny Answer: Frog Farmer Energy
@@ -187,7 +199,9 @@ Q: Come up with a funny interpretation of this acronym: F.T.T.
 Funny Answer: Forget The Tea
 
 Q: {qlPrompt}
-Funny Answer:";
+Funny Answer:",
+            };
+            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
 
             bool ValidAcronymExpansion(string acronym, string expansion)
             {
@@ -198,7 +212,7 @@ Funny Answer:";
                 return !letters.Where((t, i) => !words[i].StartsWith(t)).Any();
             }
 
-            var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new ICompletionService.CompletionParameters
                 {
                     Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,
@@ -224,7 +238,11 @@ Funny Answer:";
 
         private async Task<string> ProvideComicLashQuip(string qlPrompt, int maxLength)
         {
-            var prompt = $@"Below are some prompts and outlandish, funny, ridiculous responses to them.
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. You'll be going up against another player, so try to be original. Please respond to the prompt with only your answer.",
+                ChatStylePrompt = qlPrompt,
+                CompletionStylePrompt = $@"Below are some prompts and outlandish, funny, ridiculous responses to them.
 
 Prompt: A customer is in a coffin shop looking questioningly at a specific coffin and asks ""Wait, why is it discounted?"" to which the sales person responds:
 Response: I just had it dug up
@@ -236,9 +254,11 @@ Prompt: Someone sitting on an examination table in a doctor's office asks ""Isn'
 Response: Have you considered amputation
 
 Prompt: {qlPrompt}
-Response:";
+Response:",
+            };
+            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
 
-            var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new ICompletionService.CompletionParameters
                 {
                     Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,

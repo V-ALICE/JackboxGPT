@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using JackboxGPT.Extensions;
 using static JackboxGPT.Services.ManagedConfigFile.SurveyScrambleBlock;
+using static JackboxGPT.Services.ICompletionService;
 
 namespace JackboxGPT.Engines;
 
@@ -39,6 +40,8 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
     // Rank of previous dare entry on the board. Used for rank guessing range in final round
     private int _previousDareResult;
 
+    private string _lastPrompt = "";
+
     // Where on the list a response should be from
     private enum PositionType
     {
@@ -47,9 +50,14 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         All
     }
 
-    public SurveyScrambleEngine(ICompletionService completionService, ILogger logger, SurveyScrambleClient client, ManagedConfigFile configFile, int instance)
+    public SurveyScrambleEngine(ICompletionService completionService, ILogger logger, SurveyScrambleClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
         : base(completionService, logger, client, configFile, instance)
     {
+        UseChatEngine = configFile.SurveyScramble.EnginePreference == ManagedConfigFile.EnginePreference.Chat
+                        || (configFile.SurveyScramble.EnginePreference == ManagedConfigFile.EnginePreference.Mix && instance % 2 == coinFlip);
+        LogDebug($"Using {(UseChatEngine ? "Chat" : "Completion")} engine");
+        CompletionService.ResetAll();
+
         JackboxClient.OnSelfUpdate += OnSelfUpdate;
         JackboxClient.OnTextDescriptionsReceived += OnTextDescriptionsReceived;
         JackboxClient.OnRoundInfoReceived += OnRoundInfoReceived;
@@ -68,7 +76,9 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
             // New game, reset everything
             LogInfo("Resetting everything for new game...", true, prefix: "\n");
             _dead = _promptShown = false;
+            _lastPrompt = "";
             _previouslyGuessed.Clear();
+            CompletionService.ResetAll();
             _queuedGuesses[PositionType.High].Clear();
             _queuedGuesses[PositionType.Low].Clear();
             _queuedGuesses[PositionType.All].Clear();
@@ -189,7 +199,9 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         if (_queuedGuesses[position].Count == 0)
         {
             LogDebug($"Requesting more responses for goal {self.Goal}...");
-            var responses = await ProvideAnswers(_promptInfo.LongPrompt, self.Instructions, position);
+            var instructions = $"{self.Instructions} in the top {_promptInfo.SurveyLength}.";
+            var responses = await ProvideAnswers(_promptInfo.LongPrompt, instructions, position, instructions == _lastPrompt);
+            _lastPrompt = instructions;
             foreach (var response in responses) _queuedGuesses[position].Enqueue(response);
 
             // If no new responses are created (out of a theoretical 24 attempts), try taking from previous queue
@@ -231,7 +243,9 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         if (_queuedGuesses[position].Count == 0)
         {
             LogDebug("Requesting more responses...");
-            var responses = await ProvideAnswers(_promptInfo.LongPrompt, self.Instructions, position);
+            var instructions = $"Make as many guesses as possible in the top {_promptInfo.SurveyLength}!";
+            var responses = await ProvideAnswers(_promptInfo.LongPrompt, instructions, position, instructions == _lastPrompt);
+            _lastPrompt = instructions;
             foreach (var response in responses) _queuedGuesses[position].Enqueue(response);
 
             // If no new responses are created (out of a theoretical 48 attempts), wait a while before trying again
@@ -284,7 +298,9 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         if (_queuedGuesses[position].Count == 0)
         {
             LogDebug("Requesting more responses...");
-            var responses = await ProvideAnswers(_promptInfo.LongPrompt, self.Instructions, position);
+            var instructions = $"Try to guess various different entries in the top {_promptInfo.SurveyLength}.";
+            var responses = await ProvideAnswers(_promptInfo.LongPrompt, instructions, position, instructions == _lastPrompt, false);
+            _lastPrompt = instructions;
             foreach (var response in responses) _queuedGuesses[position].Enqueue(response);
 
             // If no new responses are created (out of a theoretical 48 attempts), just skip this round
@@ -410,7 +426,8 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         if (_queuedGuesses[position].Count == 0)
         {
             LogDebug($"Requesting more responses for goal {self.Goal}...");
-            var responses = await ProvideAnswers(_promptInfo.LongPrompt, self.Prompt, position);
+            var responses = await ProvideAnswers(_promptInfo.LongPrompt, self.Prompt, position, self.Prompt == _lastPrompt, false);
+            _lastPrompt = self.Prompt;
             foreach (var response in responses) _queuedGuesses[position].Enqueue(response);
 
             // If no new responses are created (out of a theoretical 24 attempts), try taking from previous queue
@@ -489,10 +506,10 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         JackboxClient.GuessCategory(direction);
     }
 
-    private List<string> FilterResults(string input, int maxLen, bool logChanges = false)
+    private List<string> FilterResults(string input, int maxLen, bool logChanges = false, char splitChar = '|')
     {
         // Split up result
-        var inputs = input.Split(";");
+        var inputs = input.Split(splitChar);
         if (inputs.Length == 1)
         {
             inputs = input.Split(","); // AI isn't supposed to do this but does sometimes anyway
@@ -514,33 +531,37 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         return cleaned;
     }
 
-    private async Task<List<string>> ProvideAnswers(string surveyPrompt, string instructions, PositionType pos, int maxLength = 25)
+    private async Task<List<string>> ProvideAnswers(string surveyPrompt, string instructions, PositionType pos, bool samePrompt, bool logOnce = true, int maxLength = 25)
     {
         // Prep example responses depending on prompt type
-        string q1_high = "Sopranos; Office; BreakingBad; FireFly; Seinfeld; Friends", q1_low = "Shameless; Wentworth; Spartacus; Ezel; Yellowstone; Primal";
-        string q2_high = "Waiter; Service; Check; Please; Refill; Menu", q2_low = "Pie; Burnt; Bug; Dash; Drunk; Register";
-        string q3_high = "Alarm; Police; Gun; DashCam; Lock; Dog", q3_low = "Raccoon; Disgust; Bodyguard; Boot; Broken; Spikes";
+        string q1High = "Sopranos|Office|BreakingBad|FireFly|Seinfeld|Friends", q1Low = "Shameless|Wentworth|Spartacus|Ezel|Yellowstone|Primal";
+        string q2High = "Waiter|Service|Check|Please|Refill|Menu", q2Low = "Pie|Burnt|Bug|Dash|Drunk|Register";
+        string q3High = "Alarm|Police|Gun|DashCam|Lock|Dog", q3Low = "Raccoon|Disgust|Bodyguard|Boot|Broken|Spikes";
         var inputs = new List<string>();
         switch (pos)
         {
             case PositionType.High:
-                inputs.Add(q1_high);
-                inputs.Add(q2_high);
-                inputs.Add(q3_high);
+                inputs.Add(q1High);
+                inputs.Add(q2High);
+                inputs.Add(q3High);
                 break;
             case PositionType.Low:
-                inputs.Add(q1_low);
-                inputs.Add(q2_low);
-                inputs.Add(q3_low);
+                inputs.Add(q1Low);
+                inputs.Add(q2Low);
+                inputs.Add(q3Low);
                 break;
             case PositionType.All:
-                inputs.Add($"{q1_high}; {q1_low}");
-                inputs.Add($"{q2_high}; {q2_low}");
-                inputs.Add($"{q3_high}; {q3_low}");
+                inputs.Add($"{q1High}|{q1Low}");
+                inputs.Add($"{q2High}|{q2Low}");
+                inputs.Add($"{q3High}|{q3Low}");
                 break;
         }
 
-        var prompt = $@"Below are some survey questions with reasonable responses to them.
+        var prompt = new TextInput
+        {
+            ChatSystemMessage = "You are a player in a game called Survey Scramble, in which players answer survey questions. Since this is a game with other players, it's smarter to have more variety in your responses. Please respond to the prompt with only a list of answers separated by the | character.",
+            ChatStylePrompt = samePrompt ? "More please" : $"Here's a new prompt: {surveyPrompt} {instructions}",
+            CompletionStylePrompt = $@"Below are some survey questions with reasonable responses to them.
 
 Survey: What's a good single word TV show title? {instructions}
 Responses: {inputs[0]}
@@ -552,9 +573,11 @@ Survey: In a word, how would you stop someone from stealing your car? {instructi
 Responses: {inputs[2]}
 
 Survey: {surveyPrompt} {instructions}
-Responses:";
+Responses:",
+        };
+        LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", logOnce);
 
-        var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+        var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new ICompletionService.CompletionParameters
             {
                 Temperature = Config.SurveyScramble.GenTemp,
                 MaxTokens = 32,
@@ -574,7 +597,7 @@ Responses:";
             maxTries: Config.SurveyScramble.MaxRetries,
             defaultResponse: "");
 
-        return FilterResults(result.Text.Trim(), maxLength, true);
+        return FilterResults(result.Text.Trim(), maxLength, true).Shuffle().ToList();
     }
 
     private async Task<int> ProvideBest(string surveyPrompt, List<string> opts, PositionType type)
@@ -584,10 +607,17 @@ Responses:";
         for (var i = 0; i < opts.Count; i++)
             options += $"{i + 1}. {opts[i]}\n";
 
-        string prompt = $@"I was taking a survey, and was asked ""{surveyPrompt}"" My options were:
+        var typeStr = type == PositionType.Low ? "least" : "most";
+        var prompt = new TextInput
+        {
+            ChatSystemMessage = $"You are a player in a game called Survey Scramble, in which players answer survey questions. Please respond with only the number corresponding with the option that you think is the {typeStr} popular answer for a survey titled \"{surveyPrompt}\"",
+            ChatStylePrompt = options,
+            CompletionStylePrompt = $@"I was taking a survey, and was asked ""{surveyPrompt}"" My options were:
 
 {options}
-I think the {(type == PositionType.Low ? "least" : "most")} popular of those is number: ";
+I think the {typeStr} popular of those is number: ",
+        };
+        LogVerbose($"Prompt:\n{(Config.Model.UseChatEngineForVoting ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
         int IntParseExt(string input)
         {
@@ -598,7 +628,7 @@ I think the {(type == PositionType.Low ? "least" : "most")} popular of those is 
             if (idx != -1) return idx + 1;
 
             // Assume the response is int-parsable if it starts with a digit character
-            if (char.IsDigit(input[0])) return int.Parse(input);
+            if (char.IsDigit(input[0])) return int.Parse(new string(input.TakeWhile(char.IsDigit).ToArray()));
 
             // GPT likes to respond in English sometimes, so this (manually) tries to check for that
             return input.ToUpper() switch
@@ -616,7 +646,7 @@ I think the {(type == PositionType.Low ? "least" : "most")} popular of those is 
             };
         }
 
-        var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+        var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatEngineForVoting, new ICompletionService.CompletionParameters
             {
                 Temperature = Config.SurveyScramble.VoteTemp,
                 MaxTokens = 1,
@@ -640,6 +670,7 @@ I think the {(type == PositionType.Low ? "least" : "most")} popular of those is 
             maxTries: Config.SurveyScramble.MaxRetries,
             defaultResponse: "");
 
+        CompletionService.ResetOne(prompt.ChatSystemMessage);
         if (result.Text != "")
             return IntParseExt(result.Text.Trim()) - 1;
 
@@ -649,11 +680,17 @@ I think the {(type == PositionType.Low ? "least" : "most")} popular of those is 
 
     private async Task<int> ProvideRank(string surveyPrompt, string choice, int min, int max)
     {
-        string prompt = $@"I was taking a survey, and was asked how popular I thought ""{choice}"" would be on a list of responses to ""{surveyPrompt}""
-I think ""{choice}"" would be ranked ({min}-{max}): ";
-        LogVerbose(prompt);
+        var prompt = new TextInput
+        {
+            ChatSystemMessage = $"You are a player in a game called Survey Scramble, in which players answer survey questions. You will be given an entry from a survey about \"{surveyPrompt}\" and need to guess where on the list that entry would be. Please respond with only a number in range {min}-{max}",
+            ChatStylePrompt = choice,
+            CompletionStylePrompt = $@"I was taking a survey, and was asked how popular I thought ""{choice}"" would be on a list of responses to ""{surveyPrompt}""
 
-        var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+I think ""{choice}"" would be ranked ({min}-{max}): ",
+        };
+        LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+
+        var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatEngineForVoting, new CompletionParameters
         {
             Temperature = Config.SurveyScramble.VoteTemp,
             MaxTokens = 1,
@@ -677,6 +714,7 @@ I think ""{choice}"" would be ranked ({min}-{max}): ";
         maxTries: Config.SurveyScramble.MaxRetries,
         defaultResponse: "");
 
+        CompletionService.ResetOne(prompt.ChatSystemMessage);
         if (result.Text != "")
             return int.Parse(result.Text.Trim());
 
@@ -687,11 +725,16 @@ I think ""{choice}"" would be ranked ({min}-{max}): ";
     private async Task<int> ProvideDirection(string promptEntry, string currentPrompt, IList<string> allowed)
     {
         // GPT loves to respond with "Neither"
-        string prompt = $@"I was taking a survey where the prompt was ""{promptEntry}"" and was asked ""{currentPrompt}"" One of the answers is more popular.
-I think the answer is: ";
-        LogVerbose(prompt);
+        var prompt = new TextInput
+        {
+            ChatSystemMessage = $"You are a player in a game called Survey Scramble, in which players answer survey questions. You will be given a prompt about a survey regarding \"{promptEntry}\" Please respond with {allowed[0]} or {allowed[1]}",
+            ChatStylePrompt = currentPrompt,
+            CompletionStylePrompt = $@"I was taking a survey where the prompt was ""{promptEntry}"" and was asked ""{currentPrompt}"" One of the answers is more popular.
+I think the answer is: ",
+        };
+        LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-        var result = await CompletionService.CompletePrompt(prompt, new ICompletionService.CompletionParameters
+        var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new ICompletionService.CompletionParameters
         {
             Temperature = Config.SurveyScramble.VoteTemp,
             MaxTokens = 12,
@@ -709,6 +752,7 @@ I think the answer is: ";
         maxTries: Config.SurveyScramble.MaxRetries,
         defaultResponse: "");
 
+        CompletionService.ResetOne(prompt.ChatSystemMessage);
         if (result.Text != "")
         {
             for (int i = 0; i < allowed.Count; i++)
@@ -717,7 +761,7 @@ I think the answer is: ";
             }
         }
 
-        LogDebug("Received only unusable ProvideBest responses. Choice will be chosen randomly");
+        LogDebug("Received only unusable ProvideDirection responses. Choice will be chosen randomly");
         return new Random().Next(allowed.Count);
     }
 }

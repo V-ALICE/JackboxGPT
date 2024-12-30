@@ -12,8 +12,8 @@ namespace JackboxGPT.Engines
     {
         protected override string Tag => "fibbage2";
         
-        public Fibbage2Engine(ICompletionService completionService, ILogger logger, Fibbage2Client client, ManagedConfigFile configFile, int instance)
-            : base(completionService, logger, client, configFile, instance)
+        public Fibbage2Engine(ICompletionService completionService, ILogger logger, Fibbage2Client client, ManagedConfigFile configFile, int instance, uint coinFlip)
+            : base(completionService, logger, client, configFile, instance, coinFlip)
         {
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
@@ -58,8 +58,7 @@ namespace JackboxGPT.Engines
                 LieLock = TruthLock = false;
             }
         }
-        
-        #region Game Actions
+
         private async void SubmitLie()
         {
             var lie = await FormLie(JackboxClient.GameState.Room.Question);
@@ -94,9 +93,7 @@ namespace JackboxGPT.Engines
 
             JackboxClient.ChooseBloop(choices[category].Id);
         }
-        #endregion
 
-        #region Prompt Cleanup
         protected override string GetDefaultLie()
         {
             var choices = JackboxClient.GameState.Self.SuggestionChoices;
@@ -108,6 +105,5 @@ namespace JackboxGPT.Engines
 
             return choices[choices.RandomIndex()];
         }
-        #endregion
     }
 }
