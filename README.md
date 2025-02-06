@@ -12,15 +12,15 @@ This project is a Jackbox client controlled by GPT-3 (note: this is a pre-ChatGP
 - Survive the Internet _(currently chooses images/votes randomly)_
 - Word Spud _(currently always votes positively)_
 
-## Playing
+## Usage
 
-For now the only way to run JackboxGPT is to build it yourself (requires .NET 6.0). You'll also need to provide an OpenAI API key as an environment variable, either set or in a `.env` file, named `OPENAI_API_KEY`.
+To run this you'll first need to [create an OpenAI API key](https://platform.openai.com/docs/quickstart#create-and-export-an-api-key) and add it to the included `.env` file (or alternatively as an environment variable named `OPENAI_API_KEY`).
 
-To play a game, simply run the compiled executable and enter "Number of Instances" and "Room Code" when prompted. The executable can also be run with command line args as input, run with the `--help` option to see usage information.
+To play a game, run `JackboxGPT.exe` and enter "Number of Instances" and "Room Code" when prompted. The executable can also be run with command line args as input, run with the `--help` option to see usage information.
 
 ## Adding Support for More Games
 
-See [this guide](Extending.md) for some information on adding more games.
+See [this guide](Extending.md) for some information on adding support for more games.
 
 ## FAQ
 
@@ -32,9 +32,6 @@ See [this guide](Extending.md) for some information on adding more games.
 
 - "How 'behaved' is GPT-3 in Jackbox games?"
 > Currently the actual wordage of AI responses are sent to the game unfiltered (punctuation and formatting are cleaned up), so any garbage that GPT-3 might generate would come through into the game. I don't know how filtered the AI is on OpenAI's side, but rarely there are some really unfun answers that make their way into responses, so just be aware of that.
-
-- "No releases?"
-> Since I've been working on this mostly just for my own use there hasn't really been a need to make one. A new person running this project would already have to do extra setup (an OpenAI account with billing prepped and an API key) even if there was a prebuilt exe available, so it still wouldn't be super accessible.
 
 - "Can the AI play without human players?"
 > This is possible for any game that has "Start Game from Controller Only" option (Party Pack 3+).
