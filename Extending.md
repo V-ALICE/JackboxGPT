@@ -32,6 +32,6 @@ The main Player and Room models will be generated, but there may be other supple
 
 ### Engine
 
-The Engine is what uses the Client API you defined above and uses GPT-3 (or any other service provided via `ICompletionService`) to play the game.
+The Engine is what uses the Client API you defined above and uses GPT (or any other service provided via `ICompletionService`) to play the game.
 
-With `ICompletionService` you can provide the prompt, any GPT-3 parameters you want, a set of conditions for a valid response, and how many times it should try to get a valid response before giving up. You can find examples in `src/Engines/BaseFibbageEngine.cs`, such as within the function `ProvideLie`.
+With `ICompletionService` you can provide the prompt, any GPT parameters you want, a set of conditions for a valid response, and how many times it should try to get a valid response before giving up. You can find examples in `src/Engines/BaseFibbageEngine.cs`, such as within the function `ProvideLie`.

@@ -20,8 +20,8 @@ namespace JackboxGPT.Engines
         // Fibbage 3 sends suggestions in a follow up which messes up the usual logic
         private List<string> _suggestionsRef;
 
-        public Fibbage3Engine(ICompletionService completionService, ILogger logger, Fibbage3Client client, ManagedConfigFile configFile, int instance)
-            : base(completionService, logger, client, configFile, instance)
+        public Fibbage3Engine(ICompletionService completionService, ILogger logger, Fibbage3Client client, ManagedConfigFile configFile, int instance, uint coinFlip)
+            : base(completionService, logger, client, configFile, instance, coinFlip)
         {
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
@@ -87,8 +87,7 @@ namespace JackboxGPT.Engines
             if (revision.Old.State != revision.New.State)
                 LogDebug($"New room state: {room.State}", true);
         }
-        
-        #region Game Actions
+
         private async void SubmitLie(Fibbage3Player self)
         {
             var lie = await FormLie(self.Question, self.MaxLength);
@@ -128,9 +127,6 @@ namespace JackboxGPT.Engines
 
             JackboxClient.ChooseCategory(category);
         }
-        #endregion
-
-        #region Prompt Cleanup
 
         protected override string GetDefaultLie()
         {
@@ -164,6 +160,5 @@ namespace JackboxGPT.Engines
 
             return new Tuple<string, string>(parts[0], parts[1]);
         }
-        #endregion
     }
 }

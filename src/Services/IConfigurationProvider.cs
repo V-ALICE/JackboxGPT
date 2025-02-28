@@ -8,7 +8,8 @@ namespace JackboxGPT.Services
         public string RoomCode { get; }
         public string LogLevel { get; }
         
-        public string OpenAIEngine { get; }
+        public string OpenAICompletionEngine { get; }
+        public string OpenAIChatEngine { get; }
         public int WorkerCount { get; }
     }
 }

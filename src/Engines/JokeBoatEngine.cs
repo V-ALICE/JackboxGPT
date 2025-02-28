@@ -21,9 +21,14 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
     // More topics = more GPT tokens used
     private int _topicsCount;
 
-    public JokeBoatEngine(ICompletionService completionService, ILogger logger, JokeBoatClient client, ManagedConfigFile configFile, int instance)
+    public JokeBoatEngine(ICompletionService completionService, ILogger logger, JokeBoatClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
         : base(completionService, logger, client, configFile, instance)
     {
+        UseChatEngine = configFile.JokeBoat.EnginePreference == ManagedConfigFile.EnginePreference.Chat
+                        || (configFile.JokeBoat.EnginePreference == ManagedConfigFile.EnginePreference.Mix && instance % 2 == coinFlip);
+        LogDebug($"Using {(UseChatEngine ? "Chat" : "Completion")} engine");
+        CompletionService.ResetAll();
+
         JackboxClient.OnSelfUpdate += OnSelfUpdate;
         JackboxClient.Connect();
     }
@@ -216,10 +221,11 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
 
         // Characters that mark the end of a reasonable answer
         var clipMarkers = new[] { '?', '!' };
-        var clipIdx = input.IndexOfAny(clipMarkers);
-        var clipped = clipIdx >= 0 ? input[..clipIdx] : input;
+        var clipIdx = input.IndexOfAny(clipMarkers)+1;
+        var clipped = clipIdx > 0 ? input[..clipIdx] : input;
 
         // An odd amount of quotes implies that something got cut off, in which case this answer isn't reasonable anymore
+        clipped = clipped.Replace('“', '"').Replace('”', '"');
         if (input.Contains('"') && input.Split('"').Length % 2 == 0)
             return "";
 
@@ -227,12 +233,6 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
         var removals = new[] { "\n", "\r", "\t", "[", "]", "{", "}", "`", "\\" };
         foreach (var r in removals)
             clipped = clipped.Replace(r, null);
-
-        // Quotes shouldn't be on both ends of a submitted answer, but are allowed within a submitted answer
-        if (clipped.StartsWith('"') && clipped.EndsWith('"'))
-            clipped = clipped.TrimQuotes();
-        if (clipped.StartsWith('“') && clipped.EndsWith('”'))
-            clipped = clipped.TrimQuotes();
 
         // Characters that shouldn't be on the front or back of a submitted answer
         var endRemovals = new[] { '.', ' ', ',' };
@@ -263,7 +263,11 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
     // TODO: make this generate a list like blather round does? Then repeated types wouldn't have to use another generation
     private async Task<string> ProvideTopic(string topicPrompt, int maxLength)
     {
-        var prompt = $@"Here are some prompts for specific types of words/phrases.
+        var prompt = new TextInput
+        {
+            ChatSystemMessage = "You are a player in a game called Joke Boat, in which players attempt to form silly jokes. You will be given a prompt for a topic of a certain type, please respond with just your topic.",
+            ChatStylePrompt = $"How about {topicPrompt}",
+            CompletionStylePrompt = $@"Here are some prompts for specific types of words/phrases.
 
 Q: a person’s name
 A: Franklin Reynolds
@@ -278,9 +282,11 @@ Q: a drink
 A: Milk
 
 Q: {topicPrompt}
-A:";
+A:",
+        };
+        LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-        var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
+        var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
             {
                 Temperature = Config.JokeBoat.GenTemp,
                 MaxTokens = 16,
@@ -304,8 +310,12 @@ A:";
 
     private async Task<string> ProvidePunchline(string jokePrompt, int maxLength)
     {
-        // The person writing this code is not a comedian
-        var prompt = $@"Below are some joke setups and outlandish, funny, ridiculous punchlines for them.
+        // The person writing this code (and the prompts) is not a comedian
+        var prompt = new TextInput
+        {
+            ChatSystemMessage = "You are a player in a game called Joke Boat, in which players attempt to form silly jokes. You'll be going up against another player, so try to be original. You will be given the first half of a joke, please respond with only a punchline.",
+            ChatStylePrompt = $"Here's a new prompt: {jokePrompt.Replace("_", null)}", // Chat talks to much when given blanks for some reason
+            CompletionStylePrompt = $@"Below are some joke setups and outlandish, funny, ridiculous punchlines for them.
 
 Q: I like my pants like I like my CATS: _______
 A: Rubbing up against my legs
@@ -317,9 +327,11 @@ Q: What’s the difference between the majority of people and PIZZAS: _______
 A: People usually aren't quite as cheesy
 
 Q: {jokePrompt}
-A:";
+A:",
+        };
+        LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-        var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
+        var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
             {
                 Temperature = Config.JokeBoat.GenTemp,
                 MaxTokens = 24,
@@ -348,30 +360,39 @@ A:";
         for (var i = 0; i < quips.Count; i++)
             options += $"{i + 1}. {quips[i]}\n";
 
-        string prompt;
+        TextInput prompt;
         if (punchUpPrompt.Length > 0)
         {
-            prompt =
-                $@"I was playing a game of Jackbox Joke Boat, and the joke was ""{punchUpPrompt}"". My options were:
+            prompt = new TextInput
+            {
+                ChatSystemMessage = $"You are a player in a game called Joke Boat, in which players attempt to form silly jokes. Please respond with the number corresponding to the option that you think is funniest punchline for the prompt \"{punchUpPrompt}\"",
+                ChatStylePrompt = options,
+                CompletionStylePrompt = $@"I was playing a game of Jackbox Joke Boat, and the joke was ""{punchUpPrompt}"". My options were:
 
 {options}
-The funniest was punchline number: ";
+The funniest was punchline number: ",
+            };
         }
         else
         {
-            prompt =
-                $@"I was playing a game of Jackbox Joke Boat, and needed to choose the best joke. My options were:
+            prompt = new TextInput
+            {
+                ChatSystemMessage = "You are a player in a game called Joke Boat, in which players attempt to form silly jokes. You will be given two jokes, please respond with the number corresponding to the option that you think is the funniest.",
+                ChatStylePrompt = options,
+                CompletionStylePrompt = $@"I was playing a game of Jackbox Joke Boat, and needed to choose the best joke. My options were:
 
 {options}
-The funniest was joke number: ";
+The funniest was joke number: ",
+            };
         }
+        LogVerbose($"Prompt:\n{(Config.Model.UseChatEngineForVoting ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
         int IntParseExt(string input)
         {
             if (input.Length < 1) throw new FormatException();
 
             // Assume the response is int-parsable if it starts with a digit character
-            if (char.IsDigit(input[0])) return int.Parse(input);
+            if (char.IsDigit(input[0])) return int.Parse(new string(input.TakeWhile(char.IsDigit).ToArray()));
 
             // GPT likes to respond in English sometimes, so this (manually) tries to check for that
             return input.ToUpper() switch
@@ -382,7 +403,7 @@ The funniest was joke number: ";
             };
         }
 
-        var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
+        var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatEngineForVoting, new CompletionParameters
         {
             Temperature = Config.JokeBoat.VoteTemp,
             MaxTokens = 1,
@@ -406,6 +427,7 @@ The funniest was joke number: ";
         maxTries: Config.JokeBoat.MaxRetries,
         defaultResponse: "");
 
+        CompletionService.ResetOne(prompt.ChatStylePrompt);
         if (result.Text != "")
             return IntParseExt(result.Text.Trim()) - 1;
 

@@ -3,6 +3,7 @@
 public class ManagedConfigFile
 {
     public GeneralBlock General { get; set; }
+    public ModelBlock Model { get; set; }
     public BlatherRoundBlock BlatherRound { get; set; }
     public FibbageBlock Fibbage { get; set; }
     public JokeBoatBlock JokeBoat { get; set; }
@@ -14,6 +15,7 @@ public class ManagedConfigFile
     public ManagedConfigFile()
     {
         General = new GeneralBlock();
+        Model = new ModelBlock();
         BlatherRound = new BlatherRoundBlock();
         Fibbage = new FibbageBlock();
         JokeBoat = new JokeBoatBlock();
@@ -25,20 +27,40 @@ public class ManagedConfigFile
 
     public class GeneralBlock
     {
-        public string Name { get; set; }
+        public string PlayerName { get; set; }
         public string LoggingLevel { get; set; }  // verbose, debug, information, warning, error, fatal
-        public string Engine { get; set; }
 
         public GeneralBlock()
         {
-            Name = "GPT";
+            PlayerName = "GPT";
             LoggingLevel = "information";
-            Engine = "davinci-002";
         }
+    }
+
+    public class ModelBlock
+    {
+        public string CompletionEngine { get; set; }
+        public string ChatEngine { get; set; }
+        public bool UseChatEngineForVoting { get; set; }
+
+        public ModelBlock()
+        {
+            CompletionEngine = "davinci-002";
+            ChatEngine = "gpt-4o-mini";
+            UseChatEngineForVoting = true;
+        }
+    }
+
+    public enum EnginePreference
+    {
+        Completion,
+        Chat,
+        Mix
     }
 
     public class BlatherRoundBlock
     {
+        public EnginePreference EnginePreference { get; set; }
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
         public int GuessDelayMinMs { get; set; }
@@ -50,6 +72,7 @@ public class ManagedConfigFile
 
         public BlatherRoundBlock()
         {
+            EnginePreference = EnginePreference.Chat;
             MaxRetries = 5;
             GenTemp = 0.7f;
             GuessDelayMinMs = 2000;
@@ -63,6 +86,7 @@ public class ManagedConfigFile
 
     public class FibbageBlock
     {
+        public EnginePreference EnginePreference { get; set; }
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
         public float VoteTemp { get; set; }
@@ -71,6 +95,7 @@ public class ManagedConfigFile
 
         public FibbageBlock()
         {
+            EnginePreference = EnginePreference.Mix;
             MaxRetries = 5;
             GenTemp = 0.8f;
             VoteTemp = 0.8f;
@@ -81,6 +106,7 @@ public class ManagedConfigFile
 
     public class JokeBoatBlock
     {
+        public EnginePreference EnginePreference { get; set; }
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
         public float VoteTemp { get; set; }
@@ -88,6 +114,7 @@ public class ManagedConfigFile
 
         public JokeBoatBlock()
         {
+            EnginePreference = EnginePreference.Mix;
             MaxRetries = 5;
             GenTemp = 0.7f;
             VoteTemp = 0.8f;
@@ -97,12 +124,14 @@ public class ManagedConfigFile
 
     public class QuiplashBlock
     {
+        public EnginePreference EnginePreference { get; set; }
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
         public float VoteTemp { get; set; }
 
         public QuiplashBlock()
         {
+            EnginePreference = EnginePreference.Mix;
             MaxRetries = 5;
             GenTemp = 0.7f;
             VoteTemp = 0.8f;
@@ -147,6 +176,7 @@ public class ManagedConfigFile
             Random
         }
 
+        public EnginePreference EnginePreference { get; set; }
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
         public float VoteTemp { get; set; }
@@ -171,6 +201,7 @@ public class ManagedConfigFile
 
         public SurveyScrambleBlock()
         {
+            EnginePreference = EnginePreference.Mix;
             MaxRetries = 4;
             GenTemp = 0.8f;
             VoteTemp = 0.7f;
@@ -196,27 +227,37 @@ public class ManagedConfigFile
 
     public class SurviveTheInternetBlock
     {
+        public EnginePreference EnginePreference { get; set; }
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
+        public float VoteTemp { get; set; }
 
         public SurviveTheInternetBlock()
         {
+            EnginePreference = EnginePreference.Mix;
             MaxRetries = 5;
             GenTemp = 0.7f;
+            VoteTemp = 0.8f;
         }
     }
 
     public class WordSpudBlock
     {
+        public EnginePreference EnginePreference { get; set; }
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
+        public float VoteTemp { get; set; }
         public int VoteDelayMs { get; set; }
+        public bool AllowAiVotes { get; set; }
 
         public WordSpudBlock()
         {
+            EnginePreference = EnginePreference.Chat;
             MaxRetries = 5;
             GenTemp = 0.8f;
+            VoteTemp = 0.8f;
             VoteDelayMs = 1000;
+            AllowAiVotes = true;
         }
     }
 }

@@ -1,11 +1,13 @@
 using System;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using JackboxGPT.Games.Common.Models;
 using JackboxGPT.Games.WordSpud;
 using JackboxGPT.Games.WordSpud.Models;
 using JackboxGPT.Services;
 using Serilog;
+using static System.Net.Mime.MediaTypeNames;
 using static JackboxGPT.Services.ICompletionService;
 
 namespace JackboxGPT.Engines
@@ -14,9 +16,14 @@ namespace JackboxGPT.Engines
     {
         protected override string Tag => "wordspud";
         
-        public WordSpudEngine(ICompletionService completionService, ILogger logger, WordSpudClient client, ManagedConfigFile configFile, int instance)
+        public WordSpudEngine(ICompletionService completionService, ILogger logger, WordSpudClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
             : base(completionService, logger, client, configFile, instance)
         {
+            UseChatEngine = configFile.WordSpud.EnginePreference == ManagedConfigFile.EnginePreference.Chat
+                            || (configFile.WordSpud.EnginePreference == ManagedConfigFile.EnginePreference.Mix && instance % 2 == coinFlip);
+            LogDebug($"Using {(UseChatEngine ? "Chat" : "Completion")} engine");
+            CompletionService.ResetAll();
+
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.Connect();
@@ -31,8 +38,10 @@ namespace JackboxGPT.Engines
 
         private void OnSelfUpdate(object sender, Revision<WordSpudPlayer> revision)
         {
-            if (revision.New.State == RoomState.GameplayEnter &&
-                (JackboxClient.GameState.Room.Spud != null && JackboxClient.GameState.Room.Spud == ""))
+            if (revision.New.State == RoomState.GameplayEnter
+                && JackboxClient.GameState.Room.Spud != null
+                && JackboxClient.GameState.Room.Spud == ""
+            )
                 SubmitSpud();
         }
 
@@ -50,15 +59,55 @@ namespace JackboxGPT.Engines
         private async void VoteSpud()
         {
             if (JackboxClient.GameState.Self.State == RoomState.GameplayEnter) return;
-            LogVerbose("Voting.");
-            
+
             await Task.Delay(Config.WordSpud.VoteDelayMs);
-            JackboxClient.Vote(1);
+            var approve = true;
+            if (Config.Model.UseChatEngineForVoting && Config.WordSpud.AllowAiVotes)
+            {
+                var splits = JackboxClient.GameState.Room.CurrentWord.Split(' ');
+                var lastBlock = splits[^1].Length > 0 ? splits[^1] : $"{splits[^2]} ";
+                approve = await ProvideApproval($"{lastBlock}{JackboxClient.GameState.Room.Spud}");
+                LogDebug($"Voting {(approve ? "positively" : "negatively")}");
+            }
+            JackboxClient.Vote(approve ? 1 : -1);
+        }
+
+        private string CleanResult(string input, string currentWord, bool logChanges = false)
+        {
+            var clipped = input;
+
+            // Sometimes the AI likes to include pieces of the previous word at the start of its answer
+            var biggestOverlap = 0;
+            for (var i = 0; i < currentWord.Length; i++)
+            {
+                var pre = currentWord[i..].ToLower();
+                var post = clipped[..pre.Length].ToLower();
+                if (pre == post)
+                {
+                    biggestOverlap = pre.Length;
+                    break;
+                }
+            }
+            if (biggestOverlap > currentWord.Length / 2)
+            {
+                clipped = clipped[biggestOverlap..];
+                if (clipped.StartsWith(' ') && !input.StartsWith(' '))
+                    clipped.TrimStart();
+            }
+
+            clipped = new string(clipped.Where(c => char.IsWhiteSpace(c) || char.IsLetter(c)).ToArray());
+            if (logChanges && input.Length != clipped.Length)
+                LogDebug($"Edited AI response from \"{input}\" to \"{clipped}\"");
+            return clipped;
         }
 
         private async Task<string> ProvideSpud(string currentWord)
         {
-            var prompt = $@"The game Word Spud is played by continuing a word or phrase with a funny related word or phrase. For example:
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = "You are a player in a game called Word Spud, in which players attempt to use part of a word or phrase to make a new one. You will be given a word, please finish the word or turn it into a short phrase. Your answer will come after the word given.",
+                ChatStylePrompt = $"Here's the next word: {currentWord}",
+                CompletionStylePrompt = $@"The game Word Spud is played by continuing a word or phrase with a funny related word or phrase. For example:
 
 - jelly|fish
 - deal| with it
@@ -67,11 +116,11 @@ namespace JackboxGPT.Engines
 - tailor| made
 - real| life
 - how| do you do
-- {currentWord}|";
+- {currentWord}|",
+            };
+            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            LogVerbose($"GPT-3 Prompt: {prompt}");
-
-            var result = await CompletionService.CompletePrompt(prompt, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
                 {
                     Temperature = Config.WordSpud.GenTemp,
                     MaxTokens = 16,
@@ -82,11 +131,8 @@ namespace JackboxGPT.Engines
                 },
                 completion =>
                 {
-                    var text = completion.Text.Trim();
-                    if (string.Equals(text, currentWord, StringComparison.CurrentCultureIgnoreCase)) return false;
-                    text = new string(text.Where(char.IsLetter).ToArray());
-
-                    if (text != "" && text.Length <= 32) return true;
+                    var cleanText = CleanResult(completion.Text.Trim(), currentWord);
+                    if (cleanText.Length is > 0 and <= 32) return true;
 
                     LogDebug($"Received unusable ProvideSpud response: {completion.Text.Trim()}");
                     return false;
@@ -94,7 +140,45 @@ namespace JackboxGPT.Engines
                 maxTries: Config.WordSpud.MaxRetries,
                 defaultResponse: "no response");
 
-            return new string(result.Text.TrimEnd().Where(char.IsLetter).ToArray());
+            return CleanResult(result.Text.Trim(), currentWord, true);
+        }
+
+        private async Task<bool> ProvideApproval(string combo)
+        {
+            const string good = "GOOD";
+            const string bad = "BAD";
+
+            var prompt = new TextInput
+            {
+                ChatSystemMessage = $"You are a player in a game called Word Spud, in which players attempt to use part of a word or phrase to make a new one. You will be given a word or phrase and need to evaluate if it's reasonable or not. Since this is just a game, you should be generally positive. Please respond with {good} or {bad}",
+                ChatStylePrompt = $"How about this one: \"{combo}\"",
+                CompletionStylePrompt = ""
+            };
+            LogVerbose($"Prompt:\n{prompt.ChatStylePrompt}");
+
+            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+            {
+                Temperature = Config.WordSpud.VoteTemp,
+                MaxTokens = 12,
+                TopP = 1,
+                StopSequences = new[] { "\n" }
+            }, completion =>
+            {
+                LogVerbose(completion.Text.Trim());
+                if (completion.Text.ToUpper().Trim().Contains(good) ||
+                    completion.Text.ToUpper().Trim().Contains(bad)) return true;
+
+                LogDebug($"Received unusable ProvideApproval response: {completion.Text.Trim()}");
+                return false;
+            },
+            maxTries: Config.WordSpud.MaxRetries,
+            defaultResponse: "");
+
+            if (result.Text.ToUpper().Trim().Contains(good)) return true;
+            if (result.Text.ToUpper().Trim().Contains(bad)) return false;
+
+            LogDebug("Received only unusable ProvideApproval responses. Defaulting to voting positively");
+            return true;
         }
     }
 }

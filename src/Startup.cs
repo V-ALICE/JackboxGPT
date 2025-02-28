@@ -21,40 +21,48 @@ using JackboxGPT.Services;
 using Newtonsoft.Json;
 using Serilog;
 using Serilog.Events;
+using Serilog.Sinks.SystemConsole.Themes;
 
 namespace JackboxGPT
 {
     public static class Startup
     {
-        private static readonly HttpClient _httpClient = new();
+        private static readonly HttpClient HttpClient = new();
+        private static readonly Guid SessionGuid = Guid.NewGuid();
+        private const int BASE_INSTANCE = 1;
 
         public static async Task Bootstrap(DefaultConfigurationProvider configuration, ManagedConfigFile configFile)
         {
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Is(Enum.Parse<LogEventLevel>(configuration.LogLevel, true))
-                .WriteTo.Console(outputTemplate:
-                    "{Prefix}[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+                .WriteTo.Console(
+                    outputTemplate: "{Prefix}[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
+                    theme: AnsiConsoleTheme.Sixteen
+                )
                 .CreateLogger();
 
             Log.Logger = logger;
 
             var instances = new List<Task>();
-            for (var i = 1; i <= configuration.WorkerCount; i++)
+            for (var instance = BASE_INSTANCE; instance <= configuration.WorkerCount; instance++)
             {
-                instances.Add(BootstrapInternal(configuration, logger, configFile, i));
+                instances.Add(BootstrapInternal(configuration, logger, configFile, instance));
             }
             await Task.WhenAll(instances);
         }
 
-        private static async Task BootstrapInternal(IConfigurationProvider configuration, ILogger logger, ManagedConfigFile configFile, int instanceNum)
+        private static async Task BootstrapInternal(IConfigurationProvider configuration, ILogger logger, ManagedConfigFile configFile, int instanceId)
         {
+            var coin = (uint)new Random(SessionGuid.GetHashCode()).Next(2);
             var builder = new ContainerBuilder();
             builder.RegisterInstance(configuration).As<IConfigurationProvider>();
             builder.RegisterType<OpenAICompletionService>().As<ICompletionService>();
             builder.RegisterInstance(logger).SingleInstance();
             builder.RegisterInstance(configFile).SingleInstance();
-            builder.Register(instance => instanceNum);
-
+            builder.Register(instance => instanceId);
+            builder.Register(coinFlip => coin);
+            builder.Register(sessionId => SessionGuid);
+            
             builder.RegisterGameEngines();
 
             var container = builder.Build();
@@ -62,19 +70,22 @@ namespace JackboxGPT
             var roomCode = configuration.RoomCode.ToUpper();
             var ecastHost = configuration.EcastHost;
 
-            if (instanceNum == 0)
+            if (instanceId == BASE_INSTANCE) // Base instance, print some basic info only once
             {
                 logger.Information("Starting up...");
-                logger.Debug($"Ecast host: {ecastHost}");
+                logger.Debug($"Using session ID = {SessionGuid.ToString()}");
+                logger.Debug($"Flipped a coin and got {coin}");
+                logger.Verbose($"Ecast host: {ecastHost}");
                 logger.Information($"Trying to join room with code: {roomCode}");
             }
 
-            var response = await _httpClient.GetAsync($"https://{ecastHost}/api/v2/rooms/{roomCode}");
+            var response = await HttpClient.GetAsync($"https://{ecastHost}/api/v2/rooms/{roomCode}");
 
             try
             {
                 response.EnsureSuccessStatusCode();
-            } catch(HttpRequestException ex)
+            }
+            catch(HttpRequestException ex)
             {
                 if (ex.StatusCode != HttpStatusCode.NotFound)
                     throw;
@@ -92,7 +103,7 @@ namespace JackboxGPT
                 return;
             }
 
-            if (instanceNum == 0)
+            if (instanceId == BASE_INSTANCE)
                 logger.Information($"Room found! Starting up {tag} engine...");
             container.ResolveNamed<IJackboxEngine>(tag);
         }
