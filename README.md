@@ -5,6 +5,7 @@ Because everyone wants to use AI for party games instead of "useful" things, rig
 This project is a Jackbox client controlled by OpenAI's GPT models. It currently supports these games:
 
 - Blather 'Round
+- Bracketeering
 - Fibbage XL/2/3/4
 - Joke Boat
 - Quiplash XL/2/3
@@ -37,6 +38,9 @@ See [this guide](Extending.md) for some information on adding support for more g
 
 - "Can the AI play without human players?"
 > This is possible for any game that has "Start Game from Controller Only" option (Party Pack 3+).
+
+- "Anything else a user should know?"
+> OpenAI models are usually fairly tame, but they're still very capable of generating horrible responses. Occasionally the AI can and will produce really unfun responses, so please keep that in mind.
 
 - "Add support for X or Y game?"
 > Maybe!

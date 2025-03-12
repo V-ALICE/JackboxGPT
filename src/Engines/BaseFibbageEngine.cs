@@ -288,7 +288,7 @@ I think the truth is answer number: ",
             {
                 var prompt = CleanPromptForEntry(question);
                 if (RetryCount == 0)
-                    LogInfo($"Asking GPT-3 for lie in response to \"{prompt}\"", true, prefix: "\n\n\n");
+                    LogInfo($"Asking GPT for lie in response to \"{prompt}\"", true, prefix: "\n\n\n");
 
                 lie = await ProvideLie(prompt, maxLength);
             }
@@ -314,7 +314,7 @@ I think the truth is answer number: ",
             {
                 var prompt = CleanPromptForEntry(question);
                 if (RetryCount == 0)
-                    LogInfo($"Asking GPT-3 for double lie in response to \"{prompt}\"", true, prefix: "\n\n\n");
+                    LogInfo($"Asking GPT for double lie in response to \"{prompt}\"", true, prefix: "\n\n\n");
 
                 lie = await ProvideDoubleLie(prompt, maxLength);
             }
@@ -331,7 +331,7 @@ I think the truth is answer number: ",
             var prompt = CleanPromptForEntry(question);
             var choicesStr = choices.Aggregate("", (current, a) => current + ("\"" + a.SelectionText + "\", "));
             choicesStr += _myLastAnswer;
-            LogInfo($"Asking GPT-3 to choose truth out of these options [{choicesStr}]", true, prefix: "\n");
+            LogInfo($"Asking GPT to choose truth out of these options [{choicesStr}]", true, prefix: "\n");
 
             var truth = await ProvideTruth(prompt, choices);
             LogInfo($"Submitting truth {truth} (\"{choices[truth].SelectionText}\")");

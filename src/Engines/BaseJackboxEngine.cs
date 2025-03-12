@@ -52,7 +52,7 @@ namespace JackboxGPT.Engines
             CheckEnginePref();
         }
 
-        private void ApplyName(string name)
+        protected void ApplyName(string name)
         {
             if (name.Length > 9 && Instance >= 10) // Jackbox name length limit is 12, so this leaves room for -## after name
                 name = name[..9];
