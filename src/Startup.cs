@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Autofac;
 using JackboxGPT.Engines;
 using JackboxGPT.Games.BlatherRound;
+using JackboxGPT.Games.Bracketeering;
 using JackboxGPT.Games.Common.Models;
 using JackboxGPT.Games.Fibbage2;
 using JackboxGPT.Games.Fibbage3;
@@ -144,6 +145,9 @@ namespace JackboxGPT
 
             builder.RegisterType<SurveyScrambleClient>();
             builder.RegisterType<SurveyScrambleEngine>().Keyed<IJackboxEngine>("bigsurvey");
+
+            builder.RegisterType<BracketeeringClient>();
+            builder.RegisterType<BracketeeringEngine>().Keyed<IJackboxEngine>("bracketeering");
         }
     }
 }
