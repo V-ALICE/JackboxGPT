@@ -17,17 +17,13 @@ namespace JackboxGPT.Engines
     public class SurviveTheInternetEngine : BaseJackboxEngine<SurviveTheInternetClient>
     {
         protected override string Tag => "survivetheinternet";
+        protected override ManagedConfigFile.EnginePreference EnginePref => Config.SurviveTheInternet.EnginePreference;
 
         private readonly ImageDescriptionProvider _descriptionProvider;
 
         public SurviveTheInternetEngine(ICompletionService completionService, ILogger logger, SurviveTheInternetClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
             : base(completionService, logger, client, configFile, instance)
         {
-            UseChatEngine = configFile.SurviveTheInternet.EnginePreference == ManagedConfigFile.EnginePreference.Chat
-                            || (configFile.SurviveTheInternet.EnginePreference == ManagedConfigFile.EnginePreference.Mix && instance % 2 == coinFlip);
-            LogDebug($"Using {(UseChatEngine ? "Chat" : "Completion")} engine");
-            CompletionService.ResetAll();
-
             _descriptionProvider = new ImageDescriptionProvider("sti_image_descriptions.json");
 
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
@@ -115,7 +111,7 @@ namespace JackboxGPT.Engines
         {
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. You'll be evaluated against other players, so try to be original. Please respond to the prompt with only your concise answer. Please do not use emoji.",
+                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your concise answer.",
                 ChatStylePrompt = $"Here's a new prompt: {stiPrompt}",
                 CompletionStylePrompt = $@"In the first part of the game Survive the Internet, players are asked questions which they should answer short and concisely. For example:
 
@@ -131,9 +127,10 @@ A: I love positive people.
 Q: {stiPrompt}
 A:",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new CompletionParameters
                 {
                     Temperature = Config.SurviveTheInternet.GenTemp,
                     MaxTokens = 32,
@@ -160,7 +157,7 @@ A:",
         {
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. You'll be evaluated against other players, so try to be original. Please respond to the prompt with only your concise answer. Please do not use emoji.",
+                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your concise answer.",
                 ChatStylePrompt = $"Here's a new prompt: \"{stiPrompt.BlackBox}\" {stiPrompt.BelowBlackBox.ToLower().Trim()}",
                 CompletionStylePrompt = $@"Below are some responses from the party game Survive the Internet. The goal of this game is to take another player's words and twist them to make the other player look ridiculous.
 
@@ -173,9 +170,10 @@ A:",
 ""It's not the most comfortable thing to sit on"" would be a ridiculous review for a product called: 18-inch Wooden Spoon
 ""{stiPrompt.BlackBox}"" {stiPrompt.BelowBlackBox.ToLower().Trim()}",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new CompletionParameters
                 {
                     Temperature = Config.SurviveTheInternet.GenTemp,
                     MaxTokens = 32,
@@ -204,7 +202,7 @@ A:",
 
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. You'll be evaluated against other players, so try to be original. Please respond to the prompt with only your concise answer. Please do not use emoji.",
+                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your concise answer.",
                 ChatStylePrompt = $"Here's a new prompt: An absurd and ridiculous Instagram caption for a photo of {description}:",
                 CompletionStylePrompt = $@"Below are some responses from the party game Survive the Internet. In the final round, each player takes an image and tries to come up with a caption that would make the other players look crazy or ridiculous.
 
@@ -213,9 +211,10 @@ An absurd and ridiculous Instagram caption for a photo of people's legs through 
 An absurd and ridiculous Instagram caption for a photo of a group of people posing for a photo at a funeral: Funeral? I thought this was a party.
 An absurd and ridiculous Instagram caption for a photo of {description}:",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new CompletionParameters
                 {
                     Temperature = Config.SurviveTheInternet.GenTemp,
                     MaxTokens = 32,

@@ -14,6 +14,8 @@ namespace JackboxGPT.Engines
     public abstract class BaseFibbageEngine<TClient> : BaseJackboxEngine<TClient>
         where TClient : IJackboxClient
     {
+        protected override ManagedConfigFile.EnginePreference EnginePref => Config.Fibbage.EnginePreference;
+
         protected bool LieLock;
         protected bool TruthLock;
 
@@ -26,10 +28,6 @@ namespace JackboxGPT.Engines
         protected BaseFibbageEngine(ICompletionService completionService, ILogger logger, TClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
             : base(completionService, logger, client, configFile, instance)
         {
-            UseChatEngine = configFile.Fibbage.EnginePreference == ManagedConfigFile.EnginePreference.Chat
-                            || (configFile.Fibbage.EnginePreference == ManagedConfigFile.EnginePreference.Mix && instance % 2 == coinFlip);
-            LogDebug($"Using {(UseChatEngine ? "Chat" : "Completion")} engine");
-            CompletionService.ResetAll();
         }
 
         protected string CleanResult(string input, string prompt = "", bool logChanges = false)
@@ -111,9 +109,10 @@ A: Desk Butt
 Q: {fibPrompt}
 A:",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new CompletionParameters
                 {
                     Temperature = Config.Fibbage.GenTemp,
                     MaxTokens = 16,
@@ -158,9 +157,10 @@ A: box|handguns
 Q: {fibPrompt}
 A:",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new CompletionParameters
                 {
                     Temperature = Config.Fibbage.GenTemp,
                     MaxTokens = 16,

@@ -152,9 +152,10 @@ Funny Answer: Cat wearing no pants arrested for indecent exposure!
 Q: {qlPrompt} {word}
 Funny Answer:",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new ICompletionService.CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new ICompletionService.CompletionParameters
                 {
                     Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,
@@ -201,7 +202,8 @@ Funny Answer: Forget The Tea
 Q: {qlPrompt}
 Funny Answer:",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
 
             bool ValidAcronymExpansion(string acronym, string expansion)
             {
@@ -212,7 +214,7 @@ Funny Answer:",
                 return !letters.Where((t, i) => !words[i].StartsWith(t)).Any();
             }
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new ICompletionService.CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new ICompletionService.CompletionParameters
                 {
                     Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,
@@ -256,9 +258,10 @@ Response: Have you considered amputation
 Prompt: {qlPrompt}
 Response:",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new ICompletionService.CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new ICompletionService.CompletionParameters
                 {
                     Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,

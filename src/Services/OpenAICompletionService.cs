@@ -35,6 +35,8 @@ namespace JackboxGPT.Services
             _chatModel = new Model(configuration.OpenAIChatEngine);
             _completionModel = new Model(configuration.OpenAICompletionEngine);
             _chatBaseContext = context;
+            if (_chatBaseContext.Length == 0)
+                _chatBaseContext = "You are an AI player in a game that may have other AI players in it. You should add variety to your responses to avoid overlapping with other AI players. Please do not include emoji or unicode in your responses as this game does not allow them.";
         }
 
         private async Task<CompletionResponse?> GetCompletion(string prompt, CompletionParameters completionParameters)
@@ -69,7 +71,7 @@ namespace JackboxGPT.Services
             };
         }
 
-        private async Task<CompletionResponse?> GetChatCompletion(string prompt, Conversation ai)
+        private static async Task<CompletionResponse?> GetChatCompletion(string prompt, Conversation ai)
         {
             ai.AppendUserInput(prompt);
             try
@@ -99,6 +101,7 @@ namespace JackboxGPT.Services
                 return _convoLookup[systemMsg];
 
             var convo = _api.Chat.CreateConversation();
+
             convo.Model = _chatModel;
             convo.RequestParameters.MaxTokens = completionParameters.MaxTokens;
             convo.RequestParameters.Temperature = completionParameters.Temperature;
@@ -107,10 +110,12 @@ namespace JackboxGPT.Services
             convo.RequestParameters.FrequencyPenalty = completionParameters.FrequencyPenalty;
             //ai.RequestParameters.MultipleStopSequences = completionParameters.StopSequences;
             convo.RequestParameters.NumChoicesPerMessage = 1;
-            if (_chatBaseContext.Length != 0) convo.AppendSystemMessage(_chatBaseContext);
-            convo.AppendSystemMessage(systemMsg);
-            _convoLookup[systemMsg] = convo;
 
+            if (_chatBaseContext.Length != 0)
+                convo.AppendSystemMessage(_chatBaseContext);
+            convo.AppendSystemMessage(systemMsg);
+
+            _convoLookup[systemMsg] = convo;
             return convo;
         }
 

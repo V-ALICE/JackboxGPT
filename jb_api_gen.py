@@ -222,9 +222,14 @@ public class {game_name}Engine : BaseJackboxEngine<{game_name}Client>
 {{
     protected override string Tag => "TODO";
 
-    public {game_name}Engine(ICompletionService completionService, ILogger logger, {game_name}Client client, int instance)
-        : base(completionService, logger, client, instance)
+    public {game_name}Engine(ICompletionService completionService, ILogger logger, {game_name}Client client, ManagedConfigFile configFile, int instance, uint coinFlip)
+        : base(completionService, logger, client, configFile, instance)
     {{
+        UseChatEngine = configFile.{game_name}.EnginePreference == ManagedConfigFile.EnginePreference.Chat
+                        || (configFile.{game_name}.EnginePreference == ManagedConfigFile.EnginePreference.Mix && instance % 2 == coinFlip);
+        LogDebug($"Using {{(UseChatEngine ? "Chat" : "Completion")}} engine");
+        CompletionService.ResetAll();
+    
         JackboxClient.OnSelfUpdate += OnSelfUpdate;
         JackboxClient.OnRoomUpdate += OnRoomUpdate;
         JackboxClient.Connect();

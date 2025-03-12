@@ -1,6 +1,7 @@
 ﻿using JackboxGPT.Games.Common;
 using JackboxGPT.Services;
 using Serilog;
+using System;
 
 
 namespace JackboxGPT.Engines
@@ -9,11 +10,12 @@ namespace JackboxGPT.Engines
         where TClient : IJackboxClient
     {
         protected abstract string Tag { get; }
-        
+
         protected readonly ICompletionService CompletionService;
         protected readonly TClient JackboxClient;
 
         protected readonly ManagedConfigFile Config;
+        protected abstract ManagedConfigFile.EnginePreference EnginePref { get; }
 
         private readonly ILogger _logger;
 
@@ -22,13 +24,18 @@ namespace JackboxGPT.Engines
         protected readonly int Instance = BASE_INSTANCE;
         protected readonly string InstanceName = "Client";
 
-        protected bool UseChatEngine = false;
+        protected readonly Random RandGen = new();
+
+        protected bool UsingChatEngine => EnginePref == ManagedConfigFile.EnginePreference.Chat
+                                        || (EnginePref == ManagedConfigFile.EnginePreference.Mix && RandGen.Next(0, 2) == 0);
 
         protected BaseJackboxEngine(ICompletionService completionService, ILogger logger, TClient client)
         {
             CompletionService = completionService;
             JackboxClient = client;
             _logger = logger;
+
+            CheckEnginePref();
         }
 
         protected BaseJackboxEngine(ICompletionService completionService, ILogger logger, TClient client, ManagedConfigFile configFile, int instance)
@@ -39,6 +46,25 @@ namespace JackboxGPT.Engines
             Instance = instance;
             Config = configFile;
             InstanceName = $"{configFile.General.PlayerName}-{instance}";
+
+            CheckEnginePref();
+        }
+
+        private void CheckEnginePref()
+        {
+            switch (EnginePref)
+            {
+                case ManagedConfigFile.EnginePreference.Completion:
+                    LogDebug("Using Completion engine", true);
+                    break;
+                case ManagedConfigFile.EnginePreference.Chat:
+                    LogDebug("Using Chat engine", true);
+                    break;
+                case ManagedConfigFile.EnginePreference.Mix:
+                    LogDebug("Using a mix of Completion and Chat engines", true);
+                    break;
+            }
+            CompletionService.ResetAll();
         }
 
         // ReSharper disable UnusedMember.Global

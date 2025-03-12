@@ -1,10 +1,11 @@
 # Changing these settings may cause things to work in unexpected ways. Make sure you're aware of what you're changing!
 
 [general]
-player_name = "GPT"
+player_name = "BOT"
 logging_level = "information"  # verbose, debug, information, warning, error, fatal
 
-# Note: gpt-4o-mini is cheaper/smarter than davinci-002, but has less varied in responses
+# Note: gpt-4o-mini is cheaper/smarter than davinci-002, but can have less variety in responses
+# Note: gpt-5-mini currently does not work because OpenAI removed multiple request parameters for whatever reason
 [model]
 completion_engine = "davinci-002"
 chat_engine = "gpt-4o-mini"
@@ -14,8 +15,8 @@ use_chat_engine_for_voting = true
 engine_preference = "CHAT"  # COMPLETION, CHAT, MIX
 max_retries = 5
 gen_temp = 0.8
-guess_delay_min_ms = 2000
-guess_delay_max_ms = 4000
+guess_delay_min_ms = 4000
+guess_delay_max_ms = 7000
 sentence_delay_ms = 10000
 skip_delay_ms = 1000
 word_delay_ms = 100
@@ -24,28 +25,28 @@ part_delay_ms = 500
 [fibbage]
 engine_preference = "MIX"
 max_retries = 5
-gen_temp = 0.8
-vote_temp = 0.8
+gen_temp = 0.9
+vote_temp = 0.9
 submission_retries = 2
 category_choice_delay_ms = 3000
 
 [joke_boat]
 engine_preference = "MIX"
 max_retries = 5
-gen_temp = 0.8
-vote_temp = 0.8
+gen_temp = 0.9
+vote_temp = 0.9
 max_topic_gen_count = 5
 
 [quiplash]
 engine_preference = "MIX"
 max_retries = 5
-gen_temp = 0.7
-vote_temp = 0.8
+gen_temp = 0.9
+vote_temp = 0.9
 
 [survey_scramble]
 engine_preference = "MIX"
 max_retries = 4
-gen_temp = 0.8
+gen_temp = 0.7
 vote_temp = 0.7
 response_min_delay_ms = 2000
 speed_response_max_delay_ms = 4000
@@ -64,13 +65,13 @@ dash_doubledown_chance = 0.25
 [survive_the_internet]
 engine_preference = "MIX"
 max_retries = 5
-gen_temp = 0.7
-vote_temp = 0.8
+gen_temp = 0.9
+vote_temp = 0.9
 
 [word_spud]
 engine_preference = "CHAT"
 max_retries = 5
-gen_temp = 0.8
-vote_temp = 0.8
+gen_temp = 0.9
+vote_temp = 0.9
 vote_delay_ms = 1000
 allow_ai_votes = true

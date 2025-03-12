@@ -176,9 +176,10 @@ Q1: {fibPrompt1}
 Q2: {fibPrompt2}
 A:",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+            var useChatEngine = true; // Forcing this for now since Completion is terrible at this sort of question
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new CompletionParameters
                 {
                     Temperature = Config.Fibbage.GenTemp,
                     MaxTokens = 16,

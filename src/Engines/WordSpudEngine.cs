@@ -1,13 +1,10 @@
-using System;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
 using JackboxGPT.Games.Common.Models;
 using JackboxGPT.Games.WordSpud;
 using JackboxGPT.Games.WordSpud.Models;
 using JackboxGPT.Services;
 using Serilog;
-using static System.Net.Mime.MediaTypeNames;
 using static JackboxGPT.Services.ICompletionService;
 
 namespace JackboxGPT.Engines
@@ -15,15 +12,11 @@ namespace JackboxGPT.Engines
     public class WordSpudEngine : BaseJackboxEngine<WordSpudClient>
     {
         protected override string Tag => "wordspud";
-        
+        protected override ManagedConfigFile.EnginePreference EnginePref => Config.WordSpud.EnginePreference;
+
         public WordSpudEngine(ICompletionService completionService, ILogger logger, WordSpudClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
             : base(completionService, logger, client, configFile, instance)
         {
-            UseChatEngine = configFile.WordSpud.EnginePreference == ManagedConfigFile.EnginePreference.Chat
-                            || (configFile.WordSpud.EnginePreference == ManagedConfigFile.EnginePreference.Mix && instance % 2 == coinFlip);
-            LogDebug($"Using {(UseChatEngine ? "Chat" : "Completion")} engine");
-            CompletionService.ResetAll();
-
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.Connect();
@@ -105,7 +98,7 @@ namespace JackboxGPT.Engines
         {
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Word Spud, in which players attempt to use part of a word or phrase to make a new one. You will be given a word, please finish the word or turn it into a short phrase. Your answer will come after the word given.",
+                ChatSystemMessage = "You are a player in a game called Word Spud, in which players attempt to use part of a word or phrase to make a new one. You will be given a word, please finish the word or turn it into a short phrase. Your answer will come after the word given, so do not include the word in your response.",
                 ChatStylePrompt = $"Here's the next word: {currentWord}",
                 CompletionStylePrompt = $@"The game Word Spud is played by continuing a word or phrase with a funny related word or phrase. For example:
 
@@ -118,9 +111,10 @@ namespace JackboxGPT.Engines
 - how| do you do
 - {currentWord}|",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new CompletionParameters
                 {
                     Temperature = Config.WordSpud.GenTemp,
                     MaxTokens = 16,
@@ -150,13 +144,13 @@ namespace JackboxGPT.Engines
 
             var prompt = new TextInput
             {
-                ChatSystemMessage = $"You are a player in a game called Word Spud, in which players attempt to use part of a word or phrase to make a new one. You will be given a word or phrase and need to evaluate if it's reasonable or not. Since this is just a game, you should be generally positive. Please respond with {good} or {bad}",
+                ChatSystemMessage = $"You are a player in a game called Word Spud, in which players attempt to use part of a word or phrase to make a new one. You will be given a word or phrase and need to evaluate if it's reasonable or not. Since this is just for fun, you can be generally positive as long as the response makes sense. Please respond with {good} or {bad}",
                 ChatStylePrompt = $"How about this one: \"{combo}\"",
                 CompletionStylePrompt = ""
             };
             LogVerbose($"Prompt:\n{prompt.ChatStylePrompt}");
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, true, new CompletionParameters
             {
                 Temperature = Config.WordSpud.VoteTemp,
                 MaxTokens = 12,

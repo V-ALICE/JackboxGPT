@@ -112,7 +112,7 @@ namespace JackboxGPT.Engines
         {
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. You'll be going up against another player, so try to be original. This prompt requires three responses, so please respond to the prompt with only your answers separated by the | character.",
+                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. You'll be going up against another player, so try to be original. This prompt requires three responses, so please respond to the prompt with only your short answers separated by the | character.",
                 ChatStylePrompt = qlPrompt,
                 CompletionStylePrompt = $@"In the third round of the game Quiplash, players must take a prompt and give three different short answers that make sense, separated by a | character.
 
@@ -128,9 +128,10 @@ Funny Answer: hunker down|play video games|hope this all blows over
 Question: {qlPrompt}
 Funny Answer:"
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new ICompletionService.CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new ICompletionService.CompletionParameters
             {
                 Temperature = Config.Quiplash.GenTemp,
                 MaxTokens = 32,

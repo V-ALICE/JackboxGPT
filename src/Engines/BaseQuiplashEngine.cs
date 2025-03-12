@@ -14,13 +14,11 @@ namespace JackboxGPT.Engines
     public abstract class BaseQuiplashEngine<TClient> : BaseJackboxEngine<TClient>
         where TClient : IJackboxClient
     {
+        protected override ManagedConfigFile.EnginePreference EnginePref => Config.Quiplash.EnginePreference;
+
         protected BaseQuiplashEngine(ICompletionService completionService, ILogger logger, TClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
             : base(completionService, logger, client, configFile, instance)
         {
-            UseChatEngine = configFile.Quiplash.EnginePreference == ManagedConfigFile.EnginePreference.Chat
-                            || (configFile.Quiplash.EnginePreference == ManagedConfigFile.EnginePreference.Mix && instance % 2 == coinFlip);
-            LogDebug($"Using {(UseChatEngine ? "Chat" : "Completion")} engine");
-            CompletionService.ResetAll();
         }
 
         protected string CleanResult(string input, bool logChanges = false)
@@ -36,7 +34,7 @@ namespace JackboxGPT.Engines
                 clipped = clipped.Replace(r, null);
 
             // Characters that shouldn't be on the front or back of a submitted answer (AI really likes using !)
-            var endRemovals = new[] { '.', ' ', ',', '"', '!' };
+            var endRemovals = new[] { '.', ' ', ',', '!' };
             clipped = clipped.Trim(endRemovals);
 
             // Remove any double spaces that previous changes may have created
@@ -51,7 +49,7 @@ namespace JackboxGPT.Engines
         {
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. You'll be going up against another player, so try to be original. Please respond with only your answer.",
+                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. Please respond with only your short answer.",
                 ChatStylePrompt = $"Here's a new prompt: {qlPrompt}",
                 CompletionStylePrompt = $@"Below are some prompts and outlandish, funny, ridiculous answers to them.
 
@@ -70,9 +68,10 @@ Funny Answer: Shark
 Prompt: {qlPrompt}
 Funny Answer:",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new CompletionParameters
                 {
                     Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,
