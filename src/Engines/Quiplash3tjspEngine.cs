@@ -4,9 +4,9 @@ using Serilog;
 
 namespace JackboxGPT.Engines
 {
-    // The jackbox party starter is literaly just quiplash 3 with moderation, so Fibbage 1 situation
+    // The jackbox party starter is just quiplash 3 with moderation and other tools, so Fibbage 1 situation
     // Tag override then
-    public class Quiplash3Engine : Quiplash3tjspEngine
+    public class Quiplash3tjspEngine : Quiplash3Engine
     {
         protected override string Tag => "quiplash3-tjsp";
         
