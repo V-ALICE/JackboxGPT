@@ -14,7 +14,7 @@ using JackboxGPT.Games.JokeBoat;
 using JackboxGPT.Games.Quiplash1;
 using JackboxGPT.Games.Quiplash2;
 using JackboxGPT.Games.Quiplash3;
-using JackboxGPT.Games.Quiplash3-tjsp;
+using JackboxGPT.Games.Quiplash3tjsp;
 using JackboxGPT.Games.SurveyScramble;
 using JackboxGPT.Games.SurviveTheInternet;
 using JackboxGPT.Games.WordSpud;
