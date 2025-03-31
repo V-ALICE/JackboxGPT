@@ -14,6 +14,7 @@ using JackboxGPT.Games.JokeBoat;
 using JackboxGPT.Games.Quiplash1;
 using JackboxGPT.Games.Quiplash2;
 using JackboxGPT.Games.Quiplash3;
+using JackboxGPT.Games.Quiplash3-tjsp;
 using JackboxGPT.Games.SurveyScramble;
 using JackboxGPT.Games.SurviveTheInternet;
 using JackboxGPT.Games.WordSpud;
@@ -132,7 +133,8 @@ namespace JackboxGPT
 
             builder.RegisterType<Quiplash3Client>();
             builder.RegisterType<Quiplash3Engine>().Keyed<IJackboxEngine>("quiplash3");
-            
+            builder.RegisterType<Quiplash3Engine>().Keyed<IJackboxEngine>("quiplash3-tjsp");
+
             builder.RegisterType<WordSpudClient>();
             builder.RegisterType<WordSpudEngine>().Keyed<IJackboxEngine>("wordspud");
             
