@@ -10,7 +10,7 @@ namespace JackboxGPT.Engines
     {
         protected override string Tag => "quiplash3-tjsp";
         
-        public Quiplash3Engine(ICompletionService completionService, ILogger logger, Quiplash3Client client, ManagedConfigFile configFile, int instance, uint coinFlip)
+        public Quiplash3tjspEngine(ICompletionService completionService, ILogger logger, Quiplash3Client client, ManagedConfigFile configFile, int instance, uint coinFlip)
             : base(completionService, logger, client, configFile, instance, coinFlip) { }
     }
 }
