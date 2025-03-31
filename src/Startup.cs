@@ -133,7 +133,7 @@ namespace JackboxGPT
 
             builder.RegisterType<Quiplash3Client>();
             builder.RegisterType<Quiplash3Engine>().Keyed<IJackboxEngine>("quiplash3");
-            builder.RegisterType<Quiplash3tjspEngine>().Keyed<IJackboxEngine>("quiplash3-tjsp");
+            builder.RegisterType<Quiplash3Engine>().Keyed<IJackboxEngine>("quiplash3-tjsp");
 
             builder.RegisterType<WordSpudClient>();
             builder.RegisterType<WordSpudEngine>().Keyed<IJackboxEngine>("wordspud");
