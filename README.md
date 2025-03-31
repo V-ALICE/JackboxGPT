@@ -7,7 +7,7 @@ This project is a Jackbox client controlled by OpenAI's GPT models. It currently
 - Blather 'Round
 - Fibbage XL/2/3/4
 - Joke Boat
-- Quiplash XL/2/3
+- Quiplash XL/2/3 _(Party starter has support as well)_
 - Survey Scramble _(all modes besides Bounce)_
 - Survive the Internet
 - Word Spud
