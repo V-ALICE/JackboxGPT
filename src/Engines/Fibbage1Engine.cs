@@ -10,7 +10,7 @@ namespace JackboxGPT.Engines
     {
         protected override string Tag => "fibbage";
         
-        public Fibbage1Engine(ICompletionService completionService, ILogger logger, Fibbage2Client client, ManagedConfigFile configFile, int instance, uint coinFlip)
-            : base(completionService, logger, client, configFile, instance, coinFlip) { }
+        public Fibbage1Engine(ICompletionService completionService, ILogger logger, Fibbage2Client client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance) { }
     }
 }

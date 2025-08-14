@@ -18,25 +18,28 @@ namespace JackboxGPT.Services
         private readonly Model _chatModel;
         private readonly Model _completionModel;
 
-        private readonly string _chatBaseContext;
+        private const string ChatBaseContext = "You are an AI player in a game that may have other AI players in it. You should add variety to your responses to avoid overlapping with other AI players. Please do not include emoji or unicode in your responses as this game does not allow them.";
+        private string _chatPersonalityContext = "";
         private readonly Dictionary<string, Conversation> _convoLookup = new(); 
 
         /// <summary>
         /// Instantiate an <see cref="OpenAICompletionService"/> from the environment.
         /// </summary>
-        public OpenAICompletionService(IConfigurationProvider configuration, string context = "")
-            : this(Environment.GetEnvironmentVariable("OPENAI_API_KEY"), configuration, context)
+        public OpenAICompletionService(IConfigurationProvider configuration)
+            : this(Environment.GetEnvironmentVariable("OPENAI_API_KEY"), configuration)
         {
         }
 
-        private OpenAICompletionService(string apiKey, IConfigurationProvider configuration, string context = "")
+        private OpenAICompletionService(string apiKey, IConfigurationProvider configuration)
         {
             _api = new OpenAIAPI(apiKey);
             _chatModel = new Model(configuration.OpenAIChatEngine);
             _completionModel = new Model(configuration.OpenAICompletionEngine);
-            _chatBaseContext = context;
-            if (_chatBaseContext.Length == 0)
-                _chatBaseContext = "You are an AI player in a game that may have other AI players in it. You should add variety to your responses to avoid overlapping with other AI players. Please do not include emoji or unicode in your responses as this game does not allow them.";
+        }
+
+        public void ApplyPersonalityType(string personalityInfo)
+        {
+            _chatPersonalityContext = $"To make things more varied, please incorporate being {personalityInfo.Replace("`", null)} in your responses.";
         }
 
         private async Task<CompletionResponse?> GetCompletion(string prompt, CompletionParameters completionParameters)
@@ -78,8 +81,9 @@ namespace JackboxGPT.Services
             {
                 await ai.GetResponseFromChatbotAsync();
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException e)
             {
+                Console.WriteLine(e.Message);
                 await Task.Delay(100);
                 return null;
             }
@@ -101,18 +105,19 @@ namespace JackboxGPT.Services
                 return _convoLookup[systemMsg];
 
             var convo = _api.Chat.CreateConversation();
-
             convo.Model = _chatModel;
-            convo.RequestParameters.MaxTokens = completionParameters.MaxTokens;
-            convo.RequestParameters.Temperature = completionParameters.Temperature;
-            //ai.RequestParameters.TopP = completionParameters.TopP;
-            convo.RequestParameters.PresencePenalty = completionParameters.PresencePenalty;
-            convo.RequestParameters.FrequencyPenalty = completionParameters.FrequencyPenalty;
-            //ai.RequestParameters.MultipleStopSequences = completionParameters.StopSequences;
             convo.RequestParameters.NumChoicesPerMessage = 1;
+            if (!_chatModel.ModelID.StartsWith("gpt-5"))
+            {
+                convo.RequestParameters.MaxTokens = completionParameters.MaxTokens;
+                convo.RequestParameters.Temperature = completionParameters.Temperature;
+                convo.RequestParameters.PresencePenalty = completionParameters.PresencePenalty;
+                convo.RequestParameters.FrequencyPenalty = completionParameters.FrequencyPenalty;
+            }
 
-            if (_chatBaseContext.Length != 0)
-                convo.AppendSystemMessage(_chatBaseContext);
+            convo.AppendSystemMessage(ChatBaseContext);
+            if (_chatPersonalityContext.Length != 0)
+                convo.AppendSystemMessage(_chatPersonalityContext);
             convo.AppendSystemMessage(systemMsg);
 
             _convoLookup[systemMsg] = convo;

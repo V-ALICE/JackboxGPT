@@ -44,6 +44,8 @@ namespace JackboxGPT.Games.Common
         protected const int BASE_INSTANCE = 1;
         private readonly int _instance;
 
+        protected string PlayerName;
+
         public GameState<TRoom, TPlayer> GameState => _gameState;
 
         protected BaseJackboxClient(IConfigurationProvider configuration, ILogger logger, int instance = BASE_INSTANCE)
@@ -51,6 +53,12 @@ namespace JackboxGPT.Games.Common
             _configuration = configuration;
             _logger = logger;
             _instance = instance;
+            PlayerName = $"{_configuration.PlayerName}-{_instance}";
+        }
+
+        public void SetName(string name)
+        {
+            PlayerName = name;
         }
 
         public void Connect()
@@ -58,7 +66,7 @@ namespace JackboxGPT.Games.Common
             var bootstrap = new BootstrapPayload
             {
                 Role = "player",
-                Name = $"{_configuration.PlayerName}-{_instance}",
+                Name = PlayerName,
                 UserId = _playerId.ToString(),
                 Format = "json",
                 Password = ""
@@ -158,6 +166,8 @@ namespace JackboxGPT.Games.Common
         private void WsDisconnected(DisconnectionInfo inf)
         {
             _logger.Information($"Client{_instance} disconnected from Jackbox games services.");
+            if (inf.Type == DisconnectionType.Error)
+                _logger.Warning($"Server Error: {inf.Exception?.Message}");
             _exitEvent?.Set();
         }
 

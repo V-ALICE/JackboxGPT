@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
+using JackboxGPT.Extensions;
 using JackboxGPT.Games.Common.Models;
 using JackboxGPT.Games.WordSpud;
 using JackboxGPT.Games.WordSpud.Models;
@@ -14,9 +15,12 @@ namespace JackboxGPT.Engines
         protected override string Tag => "wordspud";
         protected override ManagedConfigFile.EnginePreference EnginePref => Config.WordSpud.EnginePreference;
 
-        public WordSpudEngine(ICompletionService completionService, ILogger logger, WordSpudClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
+        public WordSpudEngine(ICompletionService completionService, ILogger logger, WordSpudClient client, ManagedConfigFile configFile, int instance)
             : base(completionService, logger, client, configFile, instance)
         {
+            if (configFile.WordSpud.ChatPersonalityChance > RandGen.NextDouble())
+                ApplyRandomPersonality();
+
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.Connect();
@@ -74,6 +78,7 @@ namespace JackboxGPT.Engines
             for (var i = 0; i < currentWord.Length; i++)
             {
                 var pre = currentWord[i..].ToLower();
+                if (clipped.Length < pre.Length) break;
                 var post = clipped[..pre.Length].ToLower();
                 if (pre == post)
                 {
@@ -98,7 +103,7 @@ namespace JackboxGPT.Engines
         {
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Word Spud, in which players attempt to use part of a word or phrase to make a new one. You will be given a word, please finish the word or turn it into a short phrase. Your answer will come after the word given, so do not include the word in your response.",
+                ChatSystemMessage = "You are a player in a game called Word Spud, in which players attempt to use part of a word or phrase to make a new one. You will be given a word, please finish the word or turn it into a very short phrase, few words max. Your answer will come after the word given, so do not include the word in your response.",
                 ChatStylePrompt = $"Here's the next word: {currentWord}",
                 CompletionStylePrompt = $@"The game Word Spud is played by continuing a word or phrase with a funny related word or phrase. For example:
 
@@ -118,7 +123,6 @@ namespace JackboxGPT.Engines
                 {
                     Temperature = Config.WordSpud.GenTemp,
                     MaxTokens = 16,
-                    TopP = 1,
                     FrequencyPenalty = 0.3,
                     PresencePenalty = 0.3,
                     StopSequences = new[] { "\n" }
@@ -139,12 +143,15 @@ namespace JackboxGPT.Engines
 
         private async Task<bool> ProvideApproval(string combo)
         {
+            if (RandGen.NextDouble() < Config.WordSpud.AiVoteChance)
+                return true;
+
             const string good = "GOOD";
             const string bad = "BAD";
 
             var prompt = new TextInput
             {
-                ChatSystemMessage = $"You are a player in a game called Word Spud, in which players attempt to use part of a word or phrase to make a new one. You will be given a word or phrase and need to evaluate if it's reasonable or not. Since this is just for fun, you can be generally positive as long as the response makes sense. Please respond with {good} or {bad}",
+                ChatSystemMessage = $"You are a player in a game called Word Spud, in which players attempt to use part of a word or phrase to make a new one. You will be given a word or phrase and need to evaluate if it's reasonable or not. Since this is just for fun, you can be generally positive as long as the response makes sense or are comedic. Ignore spelling/spacing mistakes. Please respond with {good} or {bad}",
                 ChatStylePrompt = $"How about this one: \"{combo}\"",
                 CompletionStylePrompt = ""
             };
@@ -152,9 +159,8 @@ namespace JackboxGPT.Engines
 
             var result = await CompletionService.CompletePrompt(prompt, true, new CompletionParameters
             {
-                Temperature = Config.WordSpud.VoteTemp,
+                Temperature = 0.5,
                 MaxTokens = 12,
-                TopP = 1,
                 StopSequences = new[] { "\n" }
             }, completion =>
             {

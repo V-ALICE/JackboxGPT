@@ -35,9 +35,12 @@ namespace JackboxGPT.Engines
         private bool _writing;
         private string _lastCategory = "";
         
-        public BlatherRoundEngine(ICompletionService completionService, ILogger logger, BlatherRoundClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
+        public BlatherRoundEngine(ICompletionService completionService, ILogger logger, BlatherRoundClient client, ManagedConfigFile configFile, int instance)
             : base(completionService, logger, client, configFile, instance)
         {
+            if (configFile.BlatherRound.ChatPersonalityChance > RandGen.NextDouble())
+                ApplyRandomPersonality();
+
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.OnWriteNewSentence += OnWriteNewSentence;
             JackboxClient.OnPlayerStartedPresenting += OnPlayerStartedPresenting;
@@ -330,7 +333,6 @@ Guesses:",
                 {
                     Temperature = Config.BlatherRound.GenTemp,
                     MaxTokens = 64,
-                    TopP = 1,
                     FrequencyPenalty = 0.3,
                     PresencePenalty = 0.2,
                     StopSequences = new[] { "\n", "###" }

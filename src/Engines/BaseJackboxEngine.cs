@@ -1,7 +1,9 @@
-﻿using JackboxGPT.Games.Common;
+﻿using JackboxGPT.Extensions;
+using JackboxGPT.Games.Common;
 using JackboxGPT.Services;
 using Serilog;
 using System;
+using System.Xml.Linq;
 
 
 namespace JackboxGPT.Engines
@@ -20,9 +22,9 @@ namespace JackboxGPT.Engines
         private readonly ILogger _logger;
 
         protected const int BASE_INSTANCE = 1;
-        protected const string BASE_INSTANCE_NAME = "System";
+        protected const string BASE_INSTANCE_NAME = " SYSTEM MSG "; // padded to 12 characters
         protected readonly int Instance = BASE_INSTANCE;
-        protected readonly string InstanceName = "Client";
+        protected string InstanceName = "Client";
 
         protected readonly Random RandGen = new();
 
@@ -45,9 +47,36 @@ namespace JackboxGPT.Engines
             _logger = logger;
             Instance = instance;
             Config = configFile;
-            InstanceName = $"{configFile.General.PlayerName}-{instance}";
 
+            ApplyName(configFile.General.PlayerName);
             CheckEnginePref();
+        }
+
+        private void ApplyName(string name)
+        {
+            if (name.Length > 9 && Instance >= 10) // Jackbox name length limit is 12, so this leaves room for -## after name
+                name = name[..9];
+            else if (name.Length > 10) // Jackbox name length limit is 12, so this leaves room for -# after name
+                name = name[..10];
+
+            var instanceName = $"{name}-{Instance}";
+            InstanceName = instanceName.PadLeft(12);
+            JackboxClient.SetName(instanceName);
+        }
+
+        public void ApplyRandomPersonality()
+        {
+            if (EnginePref == ManagedConfigFile.EnginePreference.Completion)
+                return;
+
+            var choice = Config.Model.ChatPersonalityTypes[Config.Model.ChatPersonalityTypes.RandomIndex()].ToLower();
+            CompletionService.ApplyPersonalityType(choice);
+
+            var split = choice.Split('`');
+            var name = (split.Length == 1) ? choice.ToUpper() : split[1].ToUpper();
+
+            ApplyName(name);
+            LogInfo($"Applying personality \"{choice}\"");
         }
 
         private void CheckEnginePref()

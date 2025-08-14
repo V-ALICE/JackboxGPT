@@ -21,10 +21,13 @@ namespace JackboxGPT.Engines
 
         private readonly ImageDescriptionProvider _descriptionProvider;
 
-        public SurviveTheInternetEngine(ICompletionService completionService, ILogger logger, SurviveTheInternetClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
+        public SurviveTheInternetEngine(ICompletionService completionService, ILogger logger, SurviveTheInternetClient client, ManagedConfigFile configFile, int instance)
             : base(completionService, logger, client, configFile, instance)
         {
             _descriptionProvider = new ImageDescriptionProvider("sti_image_descriptions.json");
+
+            if (configFile.SurviveTheInternet.ChatPersonalityChance > RandGen.NextDouble())
+                ApplyRandomPersonality();
 
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.Connect();
@@ -111,7 +114,7 @@ namespace JackboxGPT.Engines
         {
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your concise answer.",
+                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your short answer.",
                 ChatStylePrompt = $"Here's a new prompt: {stiPrompt}",
                 CompletionStylePrompt = $@"In the first part of the game Survive the Internet, players are asked questions which they should answer short and concisely. For example:
 
@@ -157,7 +160,7 @@ A:",
         {
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your concise answer.",
+                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your short answer.",
                 ChatStylePrompt = $"Here's a new prompt: \"{stiPrompt.BlackBox}\" {stiPrompt.BelowBlackBox.ToLower().Trim()}",
                 CompletionStylePrompt = $@"Below are some responses from the party game Survive the Internet. The goal of this game is to take another player's words and twist them to make the other player look ridiculous.
 
@@ -202,7 +205,7 @@ A:",
 
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your concise answer.",
+                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your very short answer.",
                 ChatStylePrompt = $"Here's a new prompt: An absurd and ridiculous Instagram caption for a photo of {description}:",
                 CompletionStylePrompt = $@"Below are some responses from the party game Survive the Internet. In the final round, each player takes an image and tries to come up with a caption that would make the other players look crazy or ridiculous.
 
@@ -239,6 +242,9 @@ An absurd and ridiculous Instagram caption for a photo of {description}:",
 
         private async Task<int> ProvideVote(IReadOnlyList<string> entries)
         {
+            if (RandGen.NextDouble() > Config.Model.VotingStrayChance)
+                return new Random().Next(entries.Count);
+
             var options = "";
 
             for (var i = 0; i < entries.Count; i++)
@@ -279,7 +285,7 @@ The funniest was post number: ",
 
             var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatEngineForVoting, new CompletionParameters
             {
-                Temperature = Config.SurviveTheInternet.VoteTemp,
+                Temperature = 0.5,
                 MaxTokens = 1,
                 StopSequences = new[] { "\n" }
             }, completion =>

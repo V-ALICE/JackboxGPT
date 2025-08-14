@@ -17,8 +17,8 @@ namespace JackboxGPT.Engines
 
         private readonly ImageDescriptionProvider _descriptionProvider;
 
-        public Quiplash2Engine(ICompletionService completionService, ILogger logger, Quiplash2Client client, ManagedConfigFile configFile, int instance, uint coinFlip)
-            : base(completionService, logger, client, configFile, instance, coinFlip)
+        public Quiplash2Engine(ICompletionService completionService, ILogger logger, Quiplash2Client client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
             _descriptionProvider = new ImageDescriptionProvider("ql2_comic_descriptions.json");
 
@@ -112,7 +112,7 @@ namespace JackboxGPT.Engines
                         LogInfo($"GPT provided \"{quip}\" for the acronym \"{question.Prompt}\"");
                     break;
                 case R3Type.ComicLash: // Finish comic strip
-                    LogWarning($"This is comic ID {question.ID}");
+                    LogDebug($"This is comic ID {question.ID}");
                     prompt = _descriptionProvider.ProvideDescriptionForImageId(question.ID.ToString());
                     quip = await ProvideComicLashQuip(prompt, 45);
                     if (quip != "")
@@ -133,7 +133,7 @@ namespace JackboxGPT.Engines
             var prompt = new TextInput
             {
                 // Chat likes to explain its answers to this for some reason, which is why it gets told to limit the words
-                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. You'll be going up against another player, so try to be original. Please respond to the prompt with only a few words as your answer.",
+                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. Please respond to the prompt with only a few words as your answer.",
                 ChatStylePrompt = $"{qlPrompt} {word}",
                 CompletionStylePrompt = $@"Below are some prompts and outlandish, funny, ridiculous answers to them.
 
@@ -159,7 +159,6 @@ Funny Answer:",
                 {
                     Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,
-                    TopP = 1,
                     FrequencyPenalty = 0.2,
                     PresencePenalty = 0.1,
                     StopSequences = new[] { "\n" }
@@ -183,7 +182,7 @@ Funny Answer:",
         {
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. You'll be going up against another player, so try to be original. Please respond to the prompt with only an acronym that works.",
+                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. Please respond to the prompt with only an acronym that works.",
                 ChatStylePrompt = qlPrompt,
                 CompletionStylePrompt = $@"Below are some acroynms and outlandish, funny, ridiculous interpretations of them.
 
@@ -218,7 +217,6 @@ Funny Answer:",
                 {
                     Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,
-                    TopP = 1,
                     FrequencyPenalty = 0.2,
                     PresencePenalty = 0.1,
                     StopSequences = new[] { "\n" }
@@ -242,7 +240,7 @@ Funny Answer:",
         {
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. You'll be going up against another player, so try to be original. Please respond to the prompt with only your answer.",
+                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. Please respond to the prompt with only your short answer.",
                 ChatStylePrompt = qlPrompt,
                 CompletionStylePrompt = $@"Below are some prompts and outlandish, funny, ridiculous responses to them.
 
@@ -265,7 +263,6 @@ Response:",
                 {
                     Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,
-                    TopP = 1,
                     FrequencyPenalty = 0.2,
                     PresencePenalty = 0.1,
                     StopSequences = new[] { "\n" }

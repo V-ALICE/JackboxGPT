@@ -25,9 +25,11 @@ namespace JackboxGPT.Engines
         // Used solely for logging, since they submitted answer is not returned with the list of choices
         private string _myLastAnswer = "";
 
-        protected BaseFibbageEngine(ICompletionService completionService, ILogger logger, TClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
+        protected BaseFibbageEngine(ICompletionService completionService, ILogger logger, TClient client, ManagedConfigFile configFile, int instance)
             : base(completionService, logger, client, configFile, instance)
         {
+            if (configFile.Fibbage.ChatPersonalityChance > RandGen.NextDouble())
+                ApplyRandomPersonality();
         }
 
         protected string CleanResult(string input, string prompt = "", bool logChanges = false)
@@ -116,7 +118,6 @@ A:",
                 {
                     Temperature = Config.Fibbage.GenTemp,
                     MaxTokens = 16,
-                    TopP = 1,
                     FrequencyPenalty = 0.2,
                     StopSequences = new[] { "\n" }
                 },
@@ -164,7 +165,6 @@ A:",
                 {
                     Temperature = Config.Fibbage.GenTemp,
                     MaxTokens = 16,
-                    TopP = 1,
                     FrequencyPenalty = 0.2,
                     StopSequences = new[] { "\n" }
                 }, completion =>
@@ -199,6 +199,9 @@ A:",
 
         private async Task<int> ProvideTruth<T>(string fibPrompt, IReadOnlyList<T> lies) where T : ISelectionChoice
         {
+            if (RandGen.NextDouble() > Config.Model.VotingStrayChance)
+                return new Random().Next(lies.Count);
+
             var options = "";
 
             for(var i = 0; i < lies.Count; i++)
@@ -240,9 +243,8 @@ I think the truth is answer number: ",
             const string defaultResp = "__NORESPONSE";
             var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatEngineForVoting, new CompletionParameters
                 {
-                    Temperature = Config.Fibbage.VoteTemp,
+                    Temperature = 0.5,
                     MaxTokens = 1,
-                    TopP = 1,
                     StopSequences = new[] { "\n" }
                 }, completion =>
                 {

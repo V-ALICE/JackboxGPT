@@ -71,6 +71,7 @@ namespace JackboxGPT.Services
             int maxTries = 3
         );
 
+        public void ApplyPersonalityType(string personalityInfo);
         public void ResetOne(string key);
         public void ResetAll();
     }

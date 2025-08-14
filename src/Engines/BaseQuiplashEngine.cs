@@ -16,9 +16,11 @@ namespace JackboxGPT.Engines
     {
         protected override ManagedConfigFile.EnginePreference EnginePref => Config.Quiplash.EnginePreference;
 
-        protected BaseQuiplashEngine(ICompletionService completionService, ILogger logger, TClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
+        protected BaseQuiplashEngine(ICompletionService completionService, ILogger logger, TClient client, ManagedConfigFile configFile, int instance)
             : base(completionService, logger, client, configFile, instance)
         {
+            if (configFile.Quiplash.ChatPersonalityChance > RandGen.NextDouble())
+                ApplyRandomPersonality();
         }
 
         protected string CleanResult(string input, bool logChanges = false)
@@ -29,7 +31,7 @@ namespace JackboxGPT.Engines
             var clipped = input.ToUpper();
 
             // Characters that shouldn't be in a submitted answer
-            var removals = new[] { "\n", "\r", "\t"};
+            var removals = new[] { "\n", "\r", "\t", "\""};
             foreach (var r in removals)
                 clipped = clipped.Replace(r, null);
 
@@ -49,7 +51,7 @@ namespace JackboxGPT.Engines
         {
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. Please respond with only your short answer.",
+                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. Please respond with only your few word answer.",
                 ChatStylePrompt = $"Here's a new prompt: {qlPrompt}",
                 CompletionStylePrompt = $@"Below are some prompts and outlandish, funny, ridiculous answers to them.
 
@@ -75,7 +77,6 @@ Funny Answer:",
                 {
                     Temperature = Config.Quiplash.GenTemp,
                     MaxTokens = 16,
-                    TopP = 1,
                     FrequencyPenalty = 0.2,
                     PresencePenalty = 0.1,
                     StopSequences = new[] { "\n" }
@@ -100,6 +101,9 @@ Funny Answer:",
 
         protected async Task<int> ProvideFavorite(string qlPrompt, IReadOnlyList<string> quips)
         {
+            if (RandGen.NextDouble() > Config.Model.VotingStrayChance)
+                return new Random().Next(quips.Count);
+
             var options = "";
 
             for(var i = 0; i < quips.Count; i++)
@@ -140,9 +144,8 @@ The funniest was prompt number: ",
 
             var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatEngineForVoting, new ICompletionService.CompletionParameters
                 {
-                    Temperature = Config.Quiplash.VoteTemp,
+                    Temperature = 0.5,
                     MaxTokens = 1,
-                    TopP = 1,
                     StopSequences = new[] { "\n" }
                 }, completion =>
                 {

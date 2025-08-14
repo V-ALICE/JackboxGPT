@@ -20,9 +20,12 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
 
     private int _topicsCounter;
 
-    public JokeBoatEngine(ICompletionService completionService, ILogger logger, JokeBoatClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
+    public JokeBoatEngine(ICompletionService completionService, ILogger logger, JokeBoatClient client, ManagedConfigFile configFile, int instance)
         : base(completionService, logger, client, configFile, instance)
     {
+        if (configFile.JokeBoat.ChatPersonalityChance > RandGen.NextDouble())
+            ApplyRandomPersonality();
+
         JackboxClient.OnSelfUpdate += OnSelfUpdate;
         JackboxClient.Connect();
     }
@@ -285,7 +288,6 @@ A:",
             {
                 Temperature = Config.JokeBoat.GenTemp,
                 MaxTokens = 16,
-                TopP = 1,
                 FrequencyPenalty = 0.2,
                 StopSequences = new[] { "\n" }
             },
@@ -331,7 +333,6 @@ A:",
             {
                 Temperature = Config.JokeBoat.GenTemp,
                 MaxTokens = 24,
-                TopP = 1,
                 FrequencyPenalty = 0.2,
                 StopSequences = new[] { "\n" }
             },
@@ -351,6 +352,9 @@ A:",
 
     protected async Task<int> ProvideFavorite(IReadOnlyList<string> quips, string punchUpPrompt = "")
     {
+        if (RandGen.NextDouble() > Config.Model.VotingStrayChance)
+            return new Random().Next(quips.Count);
+
         var options = "";
 
         for (var i = 0; i < quips.Count; i++)
@@ -401,9 +405,8 @@ The funniest was joke number: ",
 
         var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatEngineForVoting, new CompletionParameters
         {
-            Temperature = Config.JokeBoat.VoteTemp,
+            Temperature = 0.5,
             MaxTokens = 1,
-            TopP = 1,
             StopSequences = new[] { "\n" }
         }, completion =>
         {

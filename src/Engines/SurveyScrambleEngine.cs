@@ -49,9 +49,12 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         All
     }
 
-    public SurveyScrambleEngine(ICompletionService completionService, ILogger logger, SurveyScrambleClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
+    public SurveyScrambleEngine(ICompletionService completionService, ILogger logger, SurveyScrambleClient client, ManagedConfigFile configFile, int instance)
         : base(completionService, logger, client, configFile, instance)
     {
+        if (configFile.SurveyScramble.ChatPersonalityChance > RandGen.NextDouble())
+            ApplyRandomPersonality();
+
         JackboxClient.OnSelfUpdate += OnSelfUpdate;
         JackboxClient.OnTextDescriptionsReceived += OnTextDescriptionsReceived;
         JackboxClient.OnRoundInfoReceived += OnRoundInfoReceived;
@@ -576,7 +579,6 @@ Responses:",
             {
                 Temperature = Config.SurveyScramble.GenTemp,
                 MaxTokens = 32,
-                TopP = 1,
                 FrequencyPenalty = 0.2,
                 StopSequences = new[] { "\n" }
             },
@@ -597,6 +599,9 @@ Responses:",
 
     private async Task<int> ProvideBest(string surveyPrompt, List<string> opts, PositionType type)
     {
+        if (RandGen.NextDouble() > Config.Model.VotingStrayChance)
+            return new Random().Next(opts.Count);
+
         var options = "";
 
         for (var i = 0; i < opts.Count; i++)
@@ -643,9 +648,8 @@ I think the {typeStr} popular of those is number: ",
 
         var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatEngineForVoting, new ICompletionService.CompletionParameters
             {
-                Temperature = Config.SurveyScramble.VoteTemp,
+                Temperature = 0.5,
                 MaxTokens = 1,
-                TopP = 1,
                 StopSequences = new[] { "\n" }
             }, completion =>
             {
@@ -687,9 +691,8 @@ I think ""{choice}"" would be ranked ({min}-{max}): ",
         
         var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatEngineForVoting, new CompletionParameters
         {
-            Temperature = Config.SurveyScramble.VoteTemp,
+            Temperature = 0.5,
             MaxTokens = 1,
-            TopP = 1,
             StopSequences = new[] { "\n" }
         }, completion =>
         {
@@ -732,9 +735,8 @@ I think the answer is: ",
 
         var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new ICompletionService.CompletionParameters
         {
-            Temperature = Config.SurveyScramble.VoteTemp,
+            Temperature = 0.5,
             MaxTokens = 12,
-            TopP = 1,
             StopSequences = new[] { "\n" }
         }, completion =>
         {   
