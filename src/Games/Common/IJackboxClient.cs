@@ -7,6 +7,7 @@ namespace JackboxGPT.Games.Common
 {
     public interface IJackboxClient
     {
+        public void SetName(string name);
         public void Connect();
         public event EventHandler<ClientWelcome> PlayerStateChanged;
     }

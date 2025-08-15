@@ -82,7 +82,7 @@ namespace JackboxGPT.Games.BlatherRound
 
         private void PreSelfUpdate(object sender, Revision<BlatherRoundPlayer> revision)
         {
-            if (revision.Old.State == revision.New.State || revision.New.State != PlayerState.MakeSentence) return;
+            if (revision.Old.State == revision.New.State || revision.New.State != State.MakeSentence) return;
             
             CurrentSentence = revision.New.Sentence;
             OnWriteNewSentence?.Invoke(this, CurrentSentence);

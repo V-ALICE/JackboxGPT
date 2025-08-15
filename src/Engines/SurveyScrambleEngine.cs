@@ -16,8 +16,7 @@ namespace JackboxGPT.Engines;
 public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
 {
     protected override string Tag => "bigsurvey";
-
-    private readonly Random _rand = new();
+    protected override ManagedConfigFile.EnginePreference EnginePref => Config.SurveyScramble.EnginePreference;
 
     private bool _dead; // Keeps the engine alive if an unsupported mode is selected
     private bool _promptShown; // Prevents the prompt from being spammed in some modes
@@ -50,13 +49,11 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         All
     }
 
-    public SurveyScrambleEngine(ICompletionService completionService, ILogger logger, SurveyScrambleClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
+    public SurveyScrambleEngine(ICompletionService completionService, ILogger logger, SurveyScrambleClient client, ManagedConfigFile configFile, int instance)
         : base(completionService, logger, client, configFile, instance)
     {
-        UseChatEngine = configFile.SurveyScramble.EnginePreference == ManagedConfigFile.EnginePreference.Chat
-                        || (configFile.SurveyScramble.EnginePreference == ManagedConfigFile.EnginePreference.Mix && instance % 2 == coinFlip);
-        LogDebug($"Using {(UseChatEngine ? "Chat" : "Completion")} engine");
-        CompletionService.ResetAll();
+        if (configFile.SurveyScramble.ChatPersonalityChance > RandGen.NextDouble())
+            ApplyRandomPersonality();
 
         JackboxClient.OnSelfUpdate += OnSelfUpdate;
         JackboxClient.OnTextDescriptionsReceived += OnTextDescriptionsReceived;
@@ -258,7 +255,7 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         }
 
         // Don't let the AI be overpowered 
-        await Task.Delay(_rand.Next(Config.SurveyScramble.ResponseMinDelayMs, Config.SurveyScramble.SpeedResponseMaxDelayMs));
+        await Task.Delay(RandGen.Next(Config.SurveyScramble.ResponseMinDelayMs, Config.SurveyScramble.SpeedResponseMaxDelayMs));
 
         // Send next response
         var guess = _queuedGuesses[position].Dequeue();
@@ -281,7 +278,7 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
 
         // Use suggestions (only from human players) sometimes
         var suggestions = self.Suggestions.Where(suggestion => !_previouslyGuessed.Contains(suggestion.Text)).ToList();
-        if (suggestions.Count > 0 && Config.SurveyScramble.TeamUseSuggestionChance > _rand.NextDouble())
+        if (suggestions.Count > 0 && Config.SurveyScramble.TeamUseSuggestionChance > RandGen.NextDouble())
         {
             // Avoids spamming answers when none are working
             await Task.Delay(Config.SurveyScramble.ResponseMinDelayMs);
@@ -326,7 +323,7 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         if (_promptInfo.LongPrompt.Length == 0 || self.Options.Count == 0 || _raceInfo.Count == 0) return;
 
         // Determine if a sabotage can/should be used
-        if (MyHorseRaceStatus.CanSabotage && Config.SurveyScramble.DashSabotageChance > _rand.NextDouble())
+        if (MyHorseRaceStatus.CanSabotage && Config.SurveyScramble.DashSabotageChance > RandGen.NextDouble())
         {
             var otherPlayers = _raceInfo.Where(entry => entry.Key != JackboxClient.GetPlayerId().ToString()).ToList();
             var cap = otherPlayers.Count;
@@ -335,14 +332,14 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
                 otherPlayers = otherPlayers.OrderByDescending(entry => entry.Value.Score).ToList();
                 cap = Math.Max(otherPlayers.Count / 2, 1);
             }
-            var sabotageId = otherPlayers[_rand.Next(cap)].Key;
+            var sabotageId = otherPlayers[RandGen.Next(cap)].Key;
             LogDebug($"Using sabotage on player with ID {sabotageId}");
             JackboxClient.SabotagePlayer(int.Parse(sabotageId));
         }
 
         // Determine if a double-down should be used
         var doubleDown = false;
-        if (Config.SurveyScramble.DashDoubledownChance > _rand.NextDouble())
+        if (Config.SurveyScramble.DashDoubledownChance > RandGen.NextDouble())
         {
             var myScore = MyHorseRaceStatus.Score;
             switch (Config.SurveyScramble.DashDoubledownMethod)
@@ -389,7 +386,7 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
         switch (Config.SurveyScramble.DareSelectionMethod)
         {
             case DareSelectionMethodType.Random:
-                dir = _rand.Next(2) == 0 ? "Higher" : "Lower";
+                dir = RandGen.Next(2) == 0 ? "Higher" : "Lower";
                 break;
             case DareSelectionMethodType.Hardest:
                 dir = self.HighDifficulty > self.LowDifficulty ? "Higher" : "Lower";
@@ -462,7 +459,7 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
     private void ChooseRandomTopic(SurveyScramblePlayer self)
     {
         var choices = self.CategoryChoices;
-        var category = _rand.Next(choices.Count);
+        var category = RandGen.Next(choices.Count);
         LogDebug($"Choosing category \"{choices[category]}\"");
 
         JackboxClient.ChooseCategory(category);
@@ -559,7 +556,7 @@ public class SurveyScrambleEngine : BaseJackboxEngine<SurveyScrambleClient>
 
         var prompt = new TextInput
         {
-            ChatSystemMessage = "You are a player in a game called Survey Scramble, in which players answer survey questions. Since this is a game with other players, it's smarter to have more variety in your responses. Please respond to the prompt with only a list of answers separated by the | character.",
+            ChatSystemMessage = "You are a player in a game called Survey Scramble, in which players answer survey questions. Please respond to the prompt with only a list of answers separated by the | character.",
             ChatStylePrompt = samePrompt ? "More please" : $"Here's a new prompt: {surveyPrompt} {instructions}",
             CompletionStylePrompt = $@"Below are some survey questions with reasonable responses to them.
 
@@ -575,13 +572,13 @@ Responses: {inputs[2]}
 Survey: {surveyPrompt} {instructions}
 Responses:",
         };
-        LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", logOnce);
+        var useChatEngine = UsingChatEngine;
+        LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", logOnce);
 
-        var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new ICompletionService.CompletionParameters
+        var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new ICompletionService.CompletionParameters
             {
                 Temperature = Config.SurveyScramble.GenTemp,
                 MaxTokens = 32,
-                TopP = 1,
                 FrequencyPenalty = 0.2,
                 StopSequences = new[] { "\n" }
             },
@@ -602,6 +599,9 @@ Responses:",
 
     private async Task<int> ProvideBest(string surveyPrompt, List<string> opts, PositionType type)
     {
+        if (RandGen.NextDouble() > Config.Model.VotingStrayChance)
+            return new Random().Next(opts.Count);
+
         var options = "";
 
         for (var i = 0; i < opts.Count; i++)
@@ -648,9 +648,8 @@ I think the {typeStr} popular of those is number: ",
 
         var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatEngineForVoting, new ICompletionService.CompletionParameters
             {
-                Temperature = Config.SurveyScramble.VoteTemp,
+                Temperature = 0.5,
                 MaxTokens = 1,
-                TopP = 1,
                 StopSequences = new[] { "\n" }
             }, completion =>
             {
@@ -675,7 +674,7 @@ I think the {typeStr} popular of those is number: ",
             return IntParseExt(result.Text.Trim()) - 1;
 
         LogDebug("Received only unusable ProvideBest responses. Choice will be chosen randomly");
-        return _rand.Next(opts.Count);
+        return RandGen.Next(opts.Count);
     }
 
     private async Task<int> ProvideRank(string surveyPrompt, string choice, int min, int max)
@@ -688,13 +687,12 @@ I think the {typeStr} popular of those is number: ",
 
 I think ""{choice}"" would be ranked ({min}-{max}): ",
         };
-        LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
-
+        LogVerbose($"Prompt:\n{(Config.Model.UseChatEngineForVoting ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+        
         var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatEngineForVoting, new CompletionParameters
         {
-            Temperature = Config.SurveyScramble.VoteTemp,
+            Temperature = 0.5,
             MaxTokens = 1,
-            TopP = 1,
             StopSequences = new[] { "\n" }
         }, completion =>
         {
@@ -719,7 +717,7 @@ I think ""{choice}"" would be ranked ({min}-{max}): ",
             return int.Parse(result.Text.Trim());
 
         LogDebug("Received only unusable ProvideBest responses. Choice will be chosen randomly");
-        return _rand.Next(min, max+1);
+        return RandGen.Next(min, max+1);
     }
 
     private async Task<int> ProvideDirection(string promptEntry, string currentPrompt, IList<string> allowed)
@@ -732,13 +730,13 @@ I think ""{choice}"" would be ranked ({min}-{max}): ",
             CompletionStylePrompt = $@"I was taking a survey where the prompt was ""{promptEntry}"" and was asked ""{currentPrompt}"" One of the answers is more popular.
 I think the answer is: ",
         };
-        LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+        var useChatEngine = UsingChatEngine;
+        LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-        var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new ICompletionService.CompletionParameters
+        var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new ICompletionService.CompletionParameters
         {
-            Temperature = Config.SurveyScramble.VoteTemp,
+            Temperature = 0.5,
             MaxTokens = 12,
-            TopP = 1,
             StopSequences = new[] { "\n" }
         }, completion =>
         {   

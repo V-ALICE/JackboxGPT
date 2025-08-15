@@ -14,6 +14,8 @@ namespace JackboxGPT.Engines
     public abstract class BaseFibbageEngine<TClient> : BaseJackboxEngine<TClient>
         where TClient : IJackboxClient
     {
+        protected override ManagedConfigFile.EnginePreference EnginePref => Config.Fibbage.EnginePreference;
+
         protected bool LieLock;
         protected bool TruthLock;
 
@@ -23,13 +25,11 @@ namespace JackboxGPT.Engines
         // Used solely for logging, since they submitted answer is not returned with the list of choices
         private string _myLastAnswer = "";
 
-        protected BaseFibbageEngine(ICompletionService completionService, ILogger logger, TClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
+        protected BaseFibbageEngine(ICompletionService completionService, ILogger logger, TClient client, ManagedConfigFile configFile, int instance)
             : base(completionService, logger, client, configFile, instance)
         {
-            UseChatEngine = configFile.Fibbage.EnginePreference == ManagedConfigFile.EnginePreference.Chat
-                            || (configFile.Fibbage.EnginePreference == ManagedConfigFile.EnginePreference.Mix && instance % 2 == coinFlip);
-            LogDebug($"Using {(UseChatEngine ? "Chat" : "Completion")} engine");
-            CompletionService.ResetAll();
+            if (configFile.Fibbage.ChatPersonalityChance > RandGen.NextDouble())
+                ApplyRandomPersonality();
         }
 
         protected string CleanResult(string input, string prompt = "", bool logChanges = false)
@@ -111,13 +111,13 @@ A: Desk Butt
 Q: {fibPrompt}
 A:",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new CompletionParameters
                 {
                     Temperature = Config.Fibbage.GenTemp,
                     MaxTokens = 16,
-                    TopP = 1,
                     FrequencyPenalty = 0.2,
                     StopSequences = new[] { "\n" }
                 },
@@ -158,13 +158,13 @@ A: box|handguns
 Q: {fibPrompt}
 A:",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}", true);
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new CompletionParameters
                 {
                     Temperature = Config.Fibbage.GenTemp,
                     MaxTokens = 16,
-                    TopP = 1,
                     FrequencyPenalty = 0.2,
                     StopSequences = new[] { "\n" }
                 }, completion =>
@@ -199,6 +199,9 @@ A:",
 
         private async Task<int> ProvideTruth<T>(string fibPrompt, IReadOnlyList<T> lies) where T : ISelectionChoice
         {
+            if (RandGen.NextDouble() > Config.Model.VotingStrayChance)
+                return new Random().Next(lies.Count);
+
             var options = "";
 
             for(var i = 0; i < lies.Count; i++)
@@ -240,9 +243,8 @@ I think the truth is answer number: ",
             const string defaultResp = "__NORESPONSE";
             var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatEngineForVoting, new CompletionParameters
                 {
-                    Temperature = Config.Fibbage.VoteTemp,
+                    Temperature = 0.5,
                     MaxTokens = 1,
-                    TopP = 1,
                     StopSequences = new[] { "\n" }
                 }, completion =>
                 {

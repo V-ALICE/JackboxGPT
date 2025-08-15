@@ -8,27 +8,38 @@ using JackboxGPT.Games.BlatherRound;
 using JackboxGPT.Games.BlatherRound.Models;
 using JackboxGPT.Games.Common.Models;
 using JackboxGPT.Services;
-using Serilog;
 using static JackboxGPT.Services.ICompletionService;
+using ILogger = Serilog.ILogger;
 
 namespace JackboxGPT.Engines
 {
+    internal enum SentenceResult
+    {
+        Skip,
+        Submit,
+        DoNothing
+    }
+
+    internal enum PartOrder
+    {
+        Before,
+        After
+    }
+
     public class BlatherRoundEngine : BaseJackboxEngine<BlatherRoundClient>
     {
         protected override string Tag => "blanky-blank";
-
-        private readonly Random _random = new();
+        protected override ManagedConfigFile.EnginePreference EnginePref => Config.BlatherRound.EnginePreference;
+        
         private readonly List<string> _guessesUsedThisRound = new();
         private bool _writing;
         private string _lastCategory = "";
         
-        public BlatherRoundEngine(ICompletionService completionService, ILogger logger, BlatherRoundClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
+        public BlatherRoundEngine(ICompletionService completionService, ILogger logger, BlatherRoundClient client, ManagedConfigFile configFile, int instance)
             : base(completionService, logger, client, configFile, instance)
         {
-            UseChatEngine = configFile.BlatherRound.EnginePreference == ManagedConfigFile.EnginePreference.Chat
-                            || (configFile.BlatherRound.EnginePreference == ManagedConfigFile.EnginePreference.Mix && instance % 2 == coinFlip);
-            LogDebug($"Using {(UseChatEngine ? "Chat" : "Completion")} engine");
-            CompletionService.ResetAll();
+            if (configFile.BlatherRound.ChatPersonalityChance > RandGen.NextDouble())
+                ApplyRandomPersonality();
 
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.OnWriteNewSentence += OnWriteNewSentence;
@@ -39,18 +50,19 @@ namespace JackboxGPT.Engines
 
         private void OnNewSentence(object sender, string sentence)
         {
-            if (JackboxClient.GameState.Self.State != PlayerState.EnterSingleText) return;
+            if (JackboxClient.GameState.Self.State != State.EnterSingleText) return;
             SubmitGuess();
         }
 
         private void OnPlayerStartedPresenting(object sender, EventArgs e)
         {
+            LogVerbose("Clearing guesses");
             _guessesUsedThisRound.Clear();
         }
 
         private void OnSelfUpdate(object sender, Revision<BlatherRoundPlayer> revision)
         {
-            if(revision.Old.State != revision.New.State && revision.New.State == PlayerState.MakeSingleChoice)
+            if(revision.Old.State != revision.New.State && revision.New.State == State.MakeSingleChoice)
                 ChoosePassword(revision.New);
             //else if (revision.New.State == PlayerState.EnterSingleText && revision.Old.EntryId != revision.New.EntryId)
             //    SubmitGuess();
@@ -63,8 +75,8 @@ namespace JackboxGPT.Engines
 
             foreach (var guess in guesses)
             {
-                if (JackboxClient.GameState.Self.State != PlayerState.EnterSingleText) return;
-                await Task.Delay(_random.Next(Config.BlatherRound.GuessDelayMinMs, Config.BlatherRound.GuessDelayMaxMs));
+                if (JackboxClient.GameState.Self.State != State.EnterSingleText) return;
+                await Task.Delay(RandGen.Next(Config.BlatherRound.GuessDelayMinMs, Config.BlatherRound.GuessDelayMaxMs));
                 JackboxClient.SubmitGuess(guess);
                 LogInfo($"Guessing: {guess}");
             }
@@ -72,6 +84,7 @@ namespace JackboxGPT.Engines
 
         private void ChoosePassword(BlatherRoundPlayer self)
         {
+            LogVerbose("Clearing guesses");
             _guessesUsedThisRound.Clear();
             var choice = self.Choices.Where(c => c.ClassName != "refresh").ToList().RandomIndex();
             JackboxClient.ChoosePassword(choice);
@@ -113,6 +126,34 @@ namespace JackboxGPT.Engines
             _writing = false;
         }
 
+        private static int MaxCommonSubString(string s1, string s2)
+        {
+            var m = s1.Length;
+            var n = s2.Length;
+
+            var res = 0;
+            for (var i = 0; i < m; i++)
+            {
+                for (var j = 0; j < n; j++)
+                {
+                    var curr = 0;
+                    while ((i + curr) < m && (j + curr) < n && s1[i + curr] == s2[j + curr])
+                    {
+                        curr++;
+                    }
+                    res = Math.Max(res, curr);
+                }
+            }
+            return res;
+        }
+
+        private bool AnySimilar(string check, IEnumerable<string> list)
+        {
+            var all = list.Where(entry => MaxCommonSubString(check.ToUpper(), entry.ToUpper()) > Math.Max(check.Length, entry.Length) / 2).ToList();
+            if (all.Any()) LogVerbose($"{check} was found to be similar enough to {all[0]}");
+            return all.Any();
+        }
+
         private async Task<SentenceResult> WriteSentence()
         {
             if (JackboxClient.CurrentSentence == null || JackboxClient.GameState.Self.Prompt.Html == null) return SentenceResult.DoNothing;
@@ -125,7 +166,7 @@ namespace JackboxGPT.Engines
             if (JackboxClient.CurrentSentence.Type != SentenceType.Response)
             {
                 // Randomly decide which order to select the parts in
-                if (_random.Next(0, 2) == 0)
+                if (RandGen.Next(0, 2) == 0)
                 {
                     LogVerbose("Processing parts from last to first.");
                     for (var index = parts.Count - 1; index >= 0; index--)
@@ -142,7 +183,7 @@ namespace JackboxGPT.Engines
             }
             else
             {
-                var unusedChoices = parts[1].Choices.Where(choice => !_guessesUsedThisRound.Contains(choice)).ToList();
+                var unusedChoices = parts[1].Choices.Where(choice => !AnySimilar(choice, _guessesUsedThisRound)).ToList();
 
                 if (unusedChoices.Count == 0)
                     return SentenceResult.Skip;
@@ -157,7 +198,7 @@ namespace JackboxGPT.Engines
                     LogVerbose($"{unusedChoices[result.Index]}: {result.Score}");
                 
                 // Randomly decide whether to check best or worst performers
-                if (_random.Next(0, 2) == 0 && results[0].Score >= 50)
+                if (RandGen.Next(0, 2) == 0 && results[0].Score >= 50)
                 {
                     var qualifierIndex = -1;
                     foreach (var qualifier in Sentence.PHRASES_SIMILAR_TO)
@@ -267,7 +308,7 @@ My guess: Etch-a-Sketch
 
             var prompt = new TextInput
             {
-                ChatSystemMessage = $"You are a player in a game called Blather 'Round, in which players attempt to guess a {JackboxClient.CurrentCategory} based on list of vague clues. Please respond to the list of clues with only a list of guesses separated by the | character.",
+                ChatSystemMessage = $"You are a player in a game called Blather 'Round, in which players attempt to guess a {JackboxClient.CurrentCategory} based on list of vague clues. Please respond to the list of clues with only a list of guesses separated by the | character. Answers should be at most a few words long.",
                 ChatStylePrompt = $"Current clues:\n{string.Join('\n', JackboxClient.CurrentSentences)}",
                 CompletionStylePrompt = $@"A list of sentences to describe a place:
 
@@ -285,22 +326,26 @@ A list of sentences to describe a {JackboxClient.CurrentCategory}:
 
 Guesses:",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            var result = await CompletionService.CompletePrompt(
-                prompt,
-                UseChatEngine,
-                new ICompletionService.CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new CompletionParameters
                 {
                     Temperature = Config.BlatherRound.GenTemp,
                     MaxTokens = 64,
-                    TopP = 1,
                     FrequencyPenalty = 0.3,
                     PresencePenalty = 0.2,
                     StopSequences = new[] { "\n", "###" }
                 },
-                completion => completion.Text.Trim().Split("|").Select(CleanAnswer).Where(answer =>
-                    answer != "" && answer.Length <= 40 && !_guessesUsedThisRound.Contains(answer)).ToList(),
+                completion =>
+                {
+                    var cleanText = completion.Text.Trim().Split("|").Select(CleanAnswer);
+                    var options = cleanText.Where(a => a != "" && a.Length <= 40 && !AnySimilar(a, _guessesUsedThisRound)).ToList();
+                    if (options.Any()) return options;
+
+                    LogDebug($"Received unusable ProvideGuesses response: \"{completion.Text.Trim()}\"");
+                    return options;
+                },
                 new List<string>(),
                 maxTries: Config.BlatherRound.MaxRetries
             );
@@ -320,18 +365,5 @@ Guesses:",
             answer = articlesRegex.Replace(answer, "").Trim();
             return answer.TrimEnd('.').TrimQuotes();
         }
-    }
-
-    internal enum SentenceResult
-    {
-        Skip,
-        Submit,
-        DoNothing
-    }
-
-    internal enum PartOrder
-    {
-        Before,
-        After
     }
 }

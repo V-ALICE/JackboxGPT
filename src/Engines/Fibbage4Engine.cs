@@ -17,8 +17,8 @@ namespace JackboxGPT.Engines
         // Fibbage 4 doesn't send the original prompt when it sends lie choices, so this keeps track of it
         private string _previousQuestion; 
 
-        public Fibbage4Engine(ICompletionService completionService, ILogger logger, Fibbage4Client client, ManagedConfigFile configFile, int instance, uint coinFlip)
-            : base(completionService, logger, client, configFile, instance, coinFlip)
+        public Fibbage4Engine(ICompletionService completionService, ILogger logger, Fibbage4Client client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
             JackboxClient.Connect();
@@ -176,13 +176,13 @@ Q1: {fibPrompt1}
 Q2: {fibPrompt2}
 A:",
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+            var useChatEngine = EnginePref != ManagedConfigFile.EnginePreference.Completion; // Forcing this for mixed mode since Completion is terrible at this sort of question
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new CompletionParameters
                 {
                     Temperature = Config.Fibbage.GenTemp,
                     MaxTokens = 16,
-                    TopP = 1,
                     FrequencyPenalty = 0.2,
                     StopSequences = new[] { "\n" }
                 },

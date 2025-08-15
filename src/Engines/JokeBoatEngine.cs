@@ -16,18 +16,15 @@ namespace JackboxGPT.Engines;
 public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
 {
     protected override string Tag => "jokeboat";
+    protected override ManagedConfigFile.EnginePreference EnginePref => Config.JokeBoat.EnginePreference;
 
-    // How many topics to generate at the beginning of a game (per AI player)
-    // More topics = more GPT tokens used
-    private int _topicsCount;
+    private int _topicsCounter;
 
-    public JokeBoatEngine(ICompletionService completionService, ILogger logger, JokeBoatClient client, ManagedConfigFile configFile, int instance, uint coinFlip)
+    public JokeBoatEngine(ICompletionService completionService, ILogger logger, JokeBoatClient client, ManagedConfigFile configFile, int instance)
         : base(completionService, logger, client, configFile, instance)
     {
-        UseChatEngine = configFile.JokeBoat.EnginePreference == ManagedConfigFile.EnginePreference.Chat
-                        || (configFile.JokeBoat.EnginePreference == ManagedConfigFile.EnginePreference.Mix && instance % 2 == coinFlip);
-        LogDebug($"Using {(UseChatEngine ? "Chat" : "Completion")} engine");
-        CompletionService.ResetAll();
+        if (configFile.JokeBoat.ChatPersonalityChance > RandGen.NextDouble())
+            ApplyRandomPersonality();
 
         JackboxClient.OnSelfUpdate += OnSelfUpdate;
         JackboxClient.Connect();
@@ -142,7 +139,7 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
 
     private async void SubmitTopic(JokeBoatPlayer self)
     {
-        if (_topicsCount >= Config.JokeBoat.MaxTopicGenCount) return;
+        if (_topicsCounter >= Config.JokeBoat.MaxTopicGenCount) return;
         await Task.Delay(30000 / Config.JokeBoat.MaxTopicGenCount); // Don't spam topics
 
         var topic = await ProvideTopic(self.Placeholder, self.MaxLength);
@@ -150,7 +147,7 @@ public class JokeBoatEngine : BaseJackboxEngine<JokeBoatClient>
 
         LogInfo($"GPT submitted {self.Placeholder}: \"{topic}\"");
         JackboxClient.SubmitEntry(topic);
-        _topicsCount++;
+        _topicsCounter++;
     }
 
     private async void SubmitPunchline(JokeBoatPlayer self, bool allowHelp)
@@ -284,13 +281,13 @@ A: Milk
 Q: {topicPrompt}
 A:",
         };
-        LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+        var useChatEngine = UsingChatEngine;
+        LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-        var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+        var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new CompletionParameters
             {
                 Temperature = Config.JokeBoat.GenTemp,
                 MaxTokens = 16,
-                TopP = 1,
                 FrequencyPenalty = 0.2,
                 StopSequences = new[] { "\n" }
             },
@@ -313,7 +310,7 @@ A:",
         // The person writing this code (and the prompts) is not a comedian
         var prompt = new TextInput
         {
-            ChatSystemMessage = "You are a player in a game called Joke Boat, in which players attempt to form silly jokes. You'll be going up against another player, so try to be original. You will be given the first half of a joke, please respond with only a punchline.",
+            ChatSystemMessage = "You are a player in a game called Joke Boat, in which players attempt to form silly jokes. You will be given the first half of a joke, please respond with only a punchline.",
             ChatStylePrompt = $"Here's a new prompt: {jokePrompt.Replace("_", null)}", // Chat talks to much when given blanks for some reason
             CompletionStylePrompt = $@"Below are some joke setups and outlandish, funny, ridiculous punchlines for them.
 
@@ -329,13 +326,13 @@ A: People usually aren't quite as cheesy
 Q: {jokePrompt}
 A:",
         };
-        LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+        var useChatEngine = UsingChatEngine;
+        LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-        var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new CompletionParameters
+        var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new CompletionParameters
             {
                 Temperature = Config.JokeBoat.GenTemp,
                 MaxTokens = 24,
-                TopP = 1,
                 FrequencyPenalty = 0.2,
                 StopSequences = new[] { "\n" }
             },
@@ -355,6 +352,9 @@ A:",
 
     protected async Task<int> ProvideFavorite(IReadOnlyList<string> quips, string punchUpPrompt = "")
     {
+        if (RandGen.NextDouble() > Config.Model.VotingStrayChance)
+            return new Random().Next(quips.Count);
+
         var options = "";
 
         for (var i = 0; i < quips.Count; i++)
@@ -405,9 +405,8 @@ The funniest was joke number: ",
 
         var result = await CompletionService.CompletePrompt(prompt, Config.Model.UseChatEngineForVoting, new CompletionParameters
         {
-            Temperature = Config.JokeBoat.VoteTemp,
+            Temperature = 0.5,
             MaxTokens = 1,
-            TopP = 1,
             StopSequences = new[] { "\n" }
         }, completion =>
         {

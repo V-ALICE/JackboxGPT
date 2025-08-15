@@ -19,8 +19,8 @@ namespace JackboxGPT.Engines
 
         private bool _selectedAvatar;
 
-        public Quiplash3Engine(ICompletionService completionService, ILogger logger, Quiplash3Client client, ManagedConfigFile configFile, int instance, uint coinFlip)
-            : base(completionService, logger, client, configFile, instance, coinFlip)
+        public Quiplash3Engine(ICompletionService completionService, ILogger logger, Quiplash3Client client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.OnSelfUpdate += OnSelfUpdate;
@@ -108,11 +108,11 @@ namespace JackboxGPT.Engines
             JackboxClient.SubmitQuip(quip);
         }
         
-        private async Task<string> ProvideThrip(string qlPrompt, int maxLength = 45)
+        private async Task<string> ProvideThrip(string qlPrompt, int maxLength = 25)
         {
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. You'll be going up against another player, so try to be original. This prompt requires three responses, so please respond to the prompt with only your answers separated by the | character.",
+                ChatSystemMessage = "You are a player in a game called Quiplash, in which players attempt to come up with funny/outlandish/ridiculous answers to prompts. This prompt requires three responses, so please respond to the prompt with only your very short answers separated by the | character.",
                 ChatStylePrompt = qlPrompt,
                 CompletionStylePrompt = $@"In the third round of the game Quiplash, players must take a prompt and give three different short answers that make sense, separated by a | character.
 
@@ -128,20 +128,21 @@ Funny Answer: hunker down|play video games|hope this all blows over
 Question: {qlPrompt}
 Funny Answer:"
             };
-            LogVerbose($"Prompt:\n{(UseChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
+            var useChatEngine = UsingChatEngine;
+            LogVerbose($"Prompt:\n{(useChatEngine ? prompt.ChatStylePrompt : prompt.CompletionStylePrompt)}");
 
-            var result = await CompletionService.CompletePrompt(prompt, UseChatEngine, new ICompletionService.CompletionParameters
+            var result = await CompletionService.CompletePrompt(prompt, useChatEngine, new ICompletionService.CompletionParameters
             {
                 Temperature = Config.Quiplash.GenTemp,
                 MaxTokens = 32,
-                TopP = 1,
                 FrequencyPenalty = 0.2,
                 PresencePenalty = 0.1,
                 StopSequences = new[] { "\n" }
             }, 
             completion =>
             {
-                if (completion.Text.Split("|").Length == 3 && !completion.Text.Contains("__") && completion.Text.Length <= 3*maxLength) 
+                var split = completion.Text.Split("|");
+                if (split.Length == 3 && !completion.Text.Contains("__") && split.All(item => item.Trim().Length < maxLength)) 
                     return true;
 
                 LogDebug($"Received unusable ProvideThrip response: {completion.Text.Trim()}");

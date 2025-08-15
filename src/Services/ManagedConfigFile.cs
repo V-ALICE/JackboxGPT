@@ -1,4 +1,6 @@
-﻿namespace JackboxGPT.Services;
+﻿using System.Collections.Generic;
+
+namespace JackboxGPT.Services;
 
 public class ManagedConfigFile
 {
@@ -42,12 +44,22 @@ public class ManagedConfigFile
         public string CompletionEngine { get; set; }
         public string ChatEngine { get; set; }
         public bool UseChatEngineForVoting { get; set; }
+        public float VotingStrayChance { get; set; }
+        public List<string> ChatPersonalityTypes { get; set; }
 
         public ModelBlock()
         {
             CompletionEngine = "davinci-002";
             ChatEngine = "gpt-4o-mini";
             UseChatEngineForVoting = true;
+            ChatPersonalityTypes = new List<string>{
+                "depressing",
+                "grumpy",
+                "chaotic",
+                "hungry",
+                "overly romantic",
+                "an alien pretending to be a human"
+            };
         }
     }
 
@@ -61,6 +73,7 @@ public class ManagedConfigFile
     public class BlatherRoundBlock
     {
         public EnginePreference EnginePreference { get; set; }
+        public float ChatPersonalityChance { get; set; }
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
         public int GuessDelayMinMs { get; set; }
@@ -73,6 +86,7 @@ public class ManagedConfigFile
         public BlatherRoundBlock()
         {
             EnginePreference = EnginePreference.Chat;
+            ChatPersonalityChance = 0.0f;
             MaxRetries = 5;
             GenTemp = 0.7f;
             GuessDelayMinMs = 2000;
@@ -87,18 +101,18 @@ public class ManagedConfigFile
     public class FibbageBlock
     {
         public EnginePreference EnginePreference { get; set; }
+        public float ChatPersonalityChance { get; set; }
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
-        public float VoteTemp { get; set; }
         public int SubmissionRetries { get; set; }
         public int CategoryChoiceDelayMs { get; set; }
 
         public FibbageBlock()
         {
             EnginePreference = EnginePreference.Mix;
+            ChatPersonalityChance = 0.15f;
             MaxRetries = 5;
             GenTemp = 0.8f;
-            VoteTemp = 0.8f;
             SubmissionRetries = 1;
             CategoryChoiceDelayMs = 3000;
         }
@@ -107,17 +121,17 @@ public class ManagedConfigFile
     public class JokeBoatBlock
     {
         public EnginePreference EnginePreference { get; set; }
+        public float ChatPersonalityChance { get; set; }
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
-        public float VoteTemp { get; set; }
         public int MaxTopicGenCount { get; set; }
 
         public JokeBoatBlock()
         {
             EnginePreference = EnginePreference.Mix;
+            ChatPersonalityChance = 0.5f;
             MaxRetries = 5;
             GenTemp = 0.7f;
-            VoteTemp = 0.8f;
             MaxTopicGenCount = 5;
         }
     }
@@ -125,16 +139,16 @@ public class ManagedConfigFile
     public class QuiplashBlock
     {
         public EnginePreference EnginePreference { get; set; }
+        public float ChatPersonalityChance { get; set; }
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
-        public float VoteTemp { get; set; }
 
         public QuiplashBlock()
         {
             EnginePreference = EnginePreference.Mix;
+            ChatPersonalityChance = 0.5f;
             MaxRetries = 5;
             GenTemp = 0.7f;
-            VoteTemp = 0.8f;
         }
     }
 
@@ -177,9 +191,9 @@ public class ManagedConfigFile
         }
 
         public EnginePreference EnginePreference { get; set; }
+        public float ChatPersonalityChance { get; set; }
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
-        public float VoteTemp { get; set; }
 
         public ContinueSelectionMethodType ContinueSelectionMethod { get; set; }
 
@@ -202,9 +216,9 @@ public class ManagedConfigFile
         public SurveyScrambleBlock()
         {
             EnginePreference = EnginePreference.Mix;
+            ChatPersonalityChance = 0.0f;
             MaxRetries = 4;
             GenTemp = 0.8f;
-            VoteTemp = 0.7f;
 
             ResponseMinDelayMs = 2000;
             SpeedResponseMaxDelayMs = 4000;
@@ -228,34 +242,36 @@ public class ManagedConfigFile
     public class SurviveTheInternetBlock
     {
         public EnginePreference EnginePreference { get; set; }
+        public float ChatPersonalityChance { get; set; }
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
-        public float VoteTemp { get; set; }
 
         public SurviveTheInternetBlock()
         {
             EnginePreference = EnginePreference.Mix;
+            ChatPersonalityChance = 0.5f;
             MaxRetries = 5;
             GenTemp = 0.7f;
-            VoteTemp = 0.8f;
         }
     }
 
     public class WordSpudBlock
     {
         public EnginePreference EnginePreference { get; set; }
+        public float ChatPersonalityChance { get; set; }
+        public float AiVoteChance { get; set; }
         public int MaxRetries { get; set; }
         public float GenTemp { get; set; }
-        public float VoteTemp { get; set; }
         public int VoteDelayMs { get; set; }
         public bool AllowAiVotes { get; set; }
 
         public WordSpudBlock()
         {
             EnginePreference = EnginePreference.Chat;
+            ChatPersonalityChance = 0.0f;
+            AiVoteChance = 0.5f;
             MaxRetries = 5;
             GenTemp = 0.8f;
-            VoteTemp = 0.8f;
             VoteDelayMs = 1000;
             AllowAiVotes = true;
         }

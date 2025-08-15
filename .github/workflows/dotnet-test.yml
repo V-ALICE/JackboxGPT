@@ -17,7 +17,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 6.0.414
+          dotnet-version: 8.0.413
   
       - name: Install dependencies
         run: dotnet nuget locals all --clear && dotnet restore

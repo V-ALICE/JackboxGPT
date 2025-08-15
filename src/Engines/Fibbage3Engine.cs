@@ -20,8 +20,8 @@ namespace JackboxGPT.Engines
         // Fibbage 3 sends suggestions in a follow up which messes up the usual logic
         private List<string> _suggestionsRef;
 
-        public Fibbage3Engine(ICompletionService completionService, ILogger logger, Fibbage3Client client, ManagedConfigFile configFile, int instance, uint coinFlip)
-            : base(completionService, logger, client, configFile, instance, coinFlip)
+        public Fibbage3Engine(ICompletionService completionService, ILogger logger, Fibbage3Client client, ManagedConfigFile configFile, int instance)
+            : base(completionService, logger, client, configFile, instance)
         {
             JackboxClient.OnRoomUpdate += OnRoomUpdate;
             JackboxClient.OnSelfUpdate += OnSelfUpdate;

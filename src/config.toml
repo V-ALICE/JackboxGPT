@@ -1,21 +1,34 @@
 # Changing these settings may cause things to work in unexpected ways. Make sure you're aware of what you're changing!
 
 [general]
-player_name = "GPT"
+player_name = "BOT"
 logging_level = "information"  # verbose, debug, information, warning, error, fatal
 
-# Note: gpt-4o-mini is cheaper/smarter than davinci-002, but has less varied in responses
+# Note: gpt-4o-mini is cheaper/smarter than davinci-002, but can have less variety in responses
+# Note: If using a GPT-5 model (like gpt-5-mini) `gen_temp` fields will not be used
 [model]
 completion_engine = "davinci-002"
 chat_engine = "gpt-4o-mini"
 use_chat_engine_for_voting = true
+voting_stray_chance = 0.25  # Chance that a random option is chosen when voting for UGC. Limits the AI being a hivemind
+
+# Note: If there is more than one word the word in `ticks` will be the name of the player
+chat_personality_types = [
+	"depressing",
+	"grumpy",
+	"chaotic",
+	"hungry",
+	"overly `romantic`",
+	"an `alien` who is pretending to be a human but doesn't quite know how things work on Earth"
+]
 
 [blather_round]
 engine_preference = "CHAT"  # COMPLETION, CHAT, MIX
+chat_personality_chance = 0.0
 max_retries = 5
 gen_temp = 0.8
-guess_delay_min_ms = 2000
-guess_delay_max_ms = 4000
+guess_delay_min_ms = 4000
+guess_delay_max_ms = 7000
 sentence_delay_ms = 10000
 skip_delay_ms = 1000
 word_delay_ms = 100
@@ -23,30 +36,30 @@ part_delay_ms = 500
 
 [fibbage]
 engine_preference = "MIX"
+chat_personality_chance = 0.15
 max_retries = 5
-gen_temp = 0.8
-vote_temp = 0.8
+gen_temp = 0.9
 submission_retries = 2
 category_choice_delay_ms = 3000
 
 [joke_boat]
 engine_preference = "MIX"
+chat_personality_chance = 0.5
 max_retries = 5
-gen_temp = 0.8
-vote_temp = 0.8
+gen_temp = 0.9
 max_topic_gen_count = 5
 
 [quiplash]
 engine_preference = "MIX"
+chat_personality_chance = 0.5
 max_retries = 5
-gen_temp = 0.7
-vote_temp = 0.8
+gen_temp = 0.9
 
 [survey_scramble]
 engine_preference = "MIX"
+chat_personality_chance = 0.0
 max_retries = 4
-gen_temp = 0.8
-vote_temp = 0.7
+gen_temp = 0.7
 response_min_delay_ms = 2000
 speed_response_max_delay_ms = 4000
 speed_gen_fail_delay_ms = 10000
@@ -63,14 +76,15 @@ dash_doubledown_chance = 0.25
 
 [survive_the_internet]
 engine_preference = "MIX"
+chat_personality_chance = 0.5
 max_retries = 5
-gen_temp = 0.7
-vote_temp = 0.8
+gen_temp = 0.9
 
 [word_spud]
 engine_preference = "CHAT"
+chat_personality_chance = 0.0
+ai_vote_chance = 0.5  # Chance that the AI is given the chance to vote rather than just always positive. The AI can be judgy when voting in this game
 max_retries = 5
-gen_temp = 0.8
-vote_temp = 0.8
+gen_temp = 0.9
 vote_delay_ms = 1000
 allow_ai_votes = true

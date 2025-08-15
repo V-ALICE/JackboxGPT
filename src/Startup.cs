@@ -53,14 +53,12 @@ namespace JackboxGPT
 
         private static async Task BootstrapInternal(IConfigurationProvider configuration, ILogger logger, ManagedConfigFile configFile, int instanceId)
         {
-            var coin = (uint)new Random(SessionGuid.GetHashCode()).Next(2);
             var builder = new ContainerBuilder();
             builder.RegisterInstance(configuration).As<IConfigurationProvider>();
             builder.RegisterType<OpenAICompletionService>().As<ICompletionService>();
             builder.RegisterInstance(logger).SingleInstance();
             builder.RegisterInstance(configFile).SingleInstance();
             builder.Register(instance => instanceId);
-            builder.Register(coinFlip => coin);
             builder.Register(sessionId => SessionGuid);
             
             builder.RegisterGameEngines();
@@ -74,7 +72,6 @@ namespace JackboxGPT
             {
                 logger.Information("Starting up...");
                 logger.Debug($"Using session ID = {SessionGuid.ToString()}");
-                logger.Debug($"Flipped a coin and got {coin}");
                 logger.Verbose($"Ecast host: {ecastHost}");
                 logger.Information($"Trying to join room with code: {roomCode}");
             }
