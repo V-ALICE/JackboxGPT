@@ -7,6 +7,7 @@ public class ManagedConfigFile
     public GeneralBlock General { get; set; }
     public ModelBlock Model { get; set; }
     public BlatherRoundBlock BlatherRound { get; set; }
+    public BracketeeringBlock Bracketeering { get; set; }
     public FibbageBlock Fibbage { get; set; }
     public JokeBoatBlock JokeBoat { get; set; }
     public QuiplashBlock Quiplash { get; set; }
@@ -19,6 +20,7 @@ public class ManagedConfigFile
         General = new GeneralBlock();
         Model = new ModelBlock();
         BlatherRound = new BlatherRoundBlock();
+        Bracketeering = new BracketeeringBlock();
         Fibbage = new FibbageBlock();
         JokeBoat = new JokeBoatBlock();
         Quiplash = new QuiplashBlock();
@@ -88,13 +90,33 @@ public class ManagedConfigFile
             EnginePreference = EnginePreference.Chat;
             ChatPersonalityChance = 0.0f;
             MaxRetries = 5;
-            GenTemp = 0.7f;
+            GenTemp = 0.8f;
             GuessDelayMinMs = 2000;
             GuessDelayMaxMs = 4000;
             SentenceDelayMs = 10000;
             SkipDelayMs = 1000;
             WordDelayMs = 100;
             PartDelayMs = 500;
+        }
+    }
+
+    public class BracketeeringBlock
+    {
+        public EnginePreference EnginePreference { get; set; }
+        public float ChatPersonalityChance { get; set; }
+        public int MaxRetries { get; set; }
+        public float GenTemp { get; set; }
+        public int VoteDelayMinMs { get; set; }
+        public int VoteDelayMaxMs { get; set; }
+
+        public BracketeeringBlock()
+        {
+            EnginePreference = EnginePreference.Mix;
+            ChatPersonalityChance = 0.25f;
+            MaxRetries = 5;
+            GenTemp = 0.8f;
+            VoteDelayMinMs = 1000;
+            VoteDelayMaxMs = 3000;
         }
     }
 

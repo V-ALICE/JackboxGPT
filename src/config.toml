@@ -34,6 +34,14 @@ skip_delay_ms = 1000
 word_delay_ms = 100
 part_delay_ms = 500
 
+[bracketeering]
+engine_preference = "MIX"
+chat_personality_chance = 0.3
+max_retries = 5
+gen_temp = 0.8
+vote_delay_min_ms = 500
+vote_delay_max_ms = 1500
+
 [fibbage]
 engine_preference = "MIX"
 chat_personality_chance = 0.15

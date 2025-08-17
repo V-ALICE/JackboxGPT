@@ -89,7 +89,7 @@ namespace JackboxGPT.Engines
             // AI likes to self censor sometimes
             if (input.Contains("**")) return "";
 
-            var clipped = input.ToUpper();
+            var clipped = input;//.ToUpper();
             if (input.Contains('#'))
                 clipped = input[..clipped.IndexOf('#')];
 
@@ -114,7 +114,7 @@ namespace JackboxGPT.Engines
         {
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your short answer.",
+                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your very short answer, ten words or less.",
                 ChatStylePrompt = $"Here's a new prompt: {stiPrompt}",
                 CompletionStylePrompt = $@"In the first part of the game Survive the Internet, players are asked questions which they should answer short and concisely. For example:
 
@@ -160,7 +160,7 @@ A:",
         {
             var prompt = new TextInput
             {
-                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your short answer.",
+                ChatSystemMessage = "You are a player in a game called Survive the Internet, in which players attempt to create silly posts that might appear on the internet. Please respond to the prompt with only your very short answer.",
                 ChatStylePrompt = $"Here's a new prompt: \"{stiPrompt.BlackBox}\" {stiPrompt.BelowBlackBox.ToLower().Trim()}",
                 CompletionStylePrompt = $@"Below are some responses from the party game Survive the Internet. The goal of this game is to take another player's words and twist them to make the other player look ridiculous.
 
@@ -170,7 +170,6 @@ A:",
 ""The bathroom"" would be a ridiculous answer to this question: Where do you cry the most?
 ""Let's hunt him down"" would be a terrible comment in response to this news headline: Local Man Wins Lottery
 ""Not that impressive tbh"" would be a ridiculous comment to a video titled: Johnny Learns How to Ride a Bike!
-""It's not the most comfortable thing to sit on"" would be a ridiculous review for a product called: 18-inch Wooden Spoon
 ""{stiPrompt.BlackBox}"" {stiPrompt.BelowBlackBox.ToLower().Trim()}",
             };
             var useChatEngine = UsingChatEngine;
